@@ -65,9 +65,5 @@ def compare(template,data,images):
     for role,count in expected.items():
         actual=len(pools.get(role,[]))
         if actual<count: warnings.append(f'{LABEL.get(role,"상품 사진")} 영역 {count}곳 중 {count-actual}곳이 비어 있습니다. 이대로 진행하면 빈 영역은 생략됩니다.')
-    avg=template.get('description_rules',{}).get('average_length',0)
-    if avg and not .5*avg<=len(data.get('description',''))<=1.8*avg: warnings.append('상품 설명 길이가 기존 상품과 다릅니다.')
-    name_avg=template.get('product_name_rules',{}).get('average_length',0)
-    if name_avg and len(data.get('product_name',''))>max(name_avg*2,30): warnings.append('상품명이 기존 상품보다 깁니다.')
     if template.get('unresolved'): warnings.append('기존 형식에 확인되지 않은 문구가 있습니다. 형식을 다시 분석해주세요.')
     return warnings

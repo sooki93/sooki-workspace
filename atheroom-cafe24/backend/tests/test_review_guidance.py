@@ -110,6 +110,52 @@ def test_unclassified_photo_cannot_be_confirmed(draft):
     assert sum(i['code'] == 'image_unclassified' for i in p['review_issues']) == 2
 
 
+@pytest.mark.parametrize('description', ['실버 펜던트', '실버 925 60 cm 인증 은은한 펜던트 설명입니다.\n' * 100])
+def test_operator_copy_does_not_block_review_or_publish(draft, description):
+    client, product_id, _ = draft
+    p = confirm_group(client, product_id)
+    picture = io.BytesIO()
+    Image.new('RGB', (50, 50), 'blue').save(picture, 'PNG')
+    assert client.post(f'/api/products/{product_id}/images', files=[('files', (f'extra{i}.png', picture.getvalue(), 'image/png')) for i in range(4)]).status_code == 200
+    p = client.get('/api/products/' + product_id).json()
+    roles = ['ETC', 'WEARING', 'PRODUCT', 'WEARING', 'PRODUCT', 'WEARING', 'DETAIL']
+    assert client.put(f'/api/products/{product_id}/images', json={'revision': p['revision'], 'main_image_id': p['main_image_id'], 'images': [{'id': i['id'], 'image_type': role, 'confirmed': True} for i, role in zip(p['images'], roles)]}).status_code == 200
+    p = client.get('/api/products/' + product_id).json()
+    payload = {key: p[key] for key in ('revision', 'product_name', 'price', 'supply_price', 'internal_product_group', 'cafe24_category_id', 'description', 'material', 'size', 'keywords', 'main_image_id', 'reference_product_id')}
+    payload.update(product_name='실버 색상 펜던트와 함께 착용하는 롱 목걸이 ' * 4, description=description, material='신주, 무니켈도금', size='60cm', seo_title='실버 펜던트', seo_description='은은한 실버 색상')
+    response = client.put('/api/products/' + product_id, json=payload)
+    assert response.status_code == 200, response.text
+    p = response.json()
+    assert p['description'] == description and p['material'] == payload['material']
+    assert not p['review_issues'] and not p['warnings']
+    assert '실버' in p['rendered_html']
+    # Old cached warnings must not survive a reload after upgrading the app.
+    source = app.dependency_overrides[get_db]()
+    try:
+        db = next(source)
+        db.get(Product, product_id).warnings = ['상품 설명 길이가 기존 상품과 다릅니다.']
+        db.commit()
+    finally:
+        source.close()
+    assert not client.get('/api/products/' + product_id).json()['warnings']
+    assert not next(item for item in client.get('/api/products').json() if item['id'] == product_id)['warnings']
+    response = client.post(f'/api/products/{product_id}/review', json={'revision': p['revision']})
+    assert response.status_code == 200, response.text
+    assert response.json()['description'] == description
+    assert client.post(f'/api/products/{product_id}/publish', json={'revision': p['revision']}).status_code == 200
+
+
+def test_copy_cannot_replace_required_material_and_size_fields(draft):
+    client, product_id, _ = draft
+    confirm_group(client, product_id)
+    p = classify(client, product_id)
+    payload = {key: p[key] for key in ('revision', 'product_name', 'price', 'supply_price', 'internal_product_group', 'cafe24_category_id', 'description', 'material', 'size', 'keywords', 'main_image_id', 'reference_product_id')}
+    payload.update(description='소재 신주, 무니켈도금 / 사이즈 60cm', material='', size='')
+    p = client.put('/api/products/' + product_id, json=payload).json()
+    assert {issue['code'] for issue in p['review_issues']} == {'material', 'size'}
+    assert client.post(f'/api/products/{product_id}/review', json={'revision': p['revision'], 'acknowledge_warnings': True}).status_code == 400
+
+
 def test_regeneration_preserves_confirmed_group_photos_and_order(draft):
     client, product_id, drain = draft
     confirm_group(client, product_id)

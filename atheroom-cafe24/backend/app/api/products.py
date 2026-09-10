@@ -3,13 +3,13 @@ from sqlalchemy import select
 from app.db import get_db
 from app.security import current_user
 from app.models import Product,Job,TemplateProfile
-from app.services.product_service import owned,editable,touch,images_for,image_dict,choose_template,refresh_preview,missing,review_issues,allowed_image_types
+from app.services.product_service import owned,editable,touch,images_for,image_dict,choose_template,refresh_preview,missing,review_issues,allowed_image_types,current_warnings
 from app.schemas.product import ProductEdit,Review
 router=APIRouter(prefix='/api/products')
 
 def serialize(db,p):
     keys=('id','status','revision','reviewed_revision','product_name','price','supply_price','internal_product_group','cafe24_category_id','description','material','size','keywords','seo','ai_result','main_image_id','reference_product_id','template_profile_id','rendered_html','warnings','cafe24_product_no','upload_steps','message','created_at')
-    return {k:getattr(p,k) for k in keys}|{'images':[image_dict(i) for i in images_for(db,p)],'missing_fields':missing(db,p),'review_issues':review_issues(db,p),'allowed_image_types':allowed_image_types(p),'main_photo_has_own_section':any(i['type']=='MAIN_CANDIDATE' for i in p.template_snapshot.get('images',[]))}
+    return {k:getattr(p,k) for k in keys}|{'warnings':current_warnings(db,p),'images':[image_dict(i) for i in images_for(db,p)],'missing_fields':missing(db,p),'review_issues':review_issues(db,p),'allowed_image_types':allowed_image_types(p),'main_photo_has_own_section':any(i['type']=='MAIN_CANDIDATE' for i in p.template_snapshot.get('images',[]))}
 @router.get('')
 def products(user=Depends(current_user),db=Depends(get_db)):
     return [serialize(db,p) for p in db.scalars(select(Product).where(Product.user_id==user.id).order_by(Product.created_at.desc()))]

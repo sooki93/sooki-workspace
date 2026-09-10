@@ -1,4 +1,4 @@
-import copy,re
+import copy
 from sqlalchemy import select
 from fastapi import HTTPException
 from app.models import Product,ProductImage,TemplateProfile,BrandSettings,AIGeneration,SourceProduct
@@ -49,6 +49,9 @@ def choose_template(db,p):
     p.template_profile_id=profile.id; p.template_snapshot=selected
     return profile
 
+def current_warnings(db,p):
+    return compare(p.template_snapshot,data(p),[image_dict(i) for i in images_for(db,p)]) if p.template_snapshot else []
+
 def refresh_preview(db,p):
     if not p.template_snapshot: return
     images=[image_dict(i) for i in images_for(db,p)]
@@ -81,13 +84,9 @@ def review_issues(db,p):
         add('group_unconfirmed','선택한 상품군을 확인한 뒤 “이 상품군으로 확인하고 저장”을 눌러주세요.','field-group')
     if brand.rules.get('require_material') and not p.material.strip(): add('material','소재를 입력해주세요.','field-material')
     if brand.rules.get('require_size') and not p.size.strip(): add('size','사이즈를 입력해주세요.','field-size')
-    for word in brand.rules.get('forbidden',[]):
-        if word and word in p.product_name+' '+p.description: add('forbidden','사용하지 않는 표현을 수정해주세요: '+word,'field-description')
+    # Operator-authored copy is not a source of inferred facts or registration blockers.
+    # Writing preferences guide AI generation; required facts use their dedicated fields.
     if not p.template_snapshot: add('template','사진을 올린 뒤 초안을 만들어 상품 형식을 적용해주세요.','product-photos')
-    text=p.product_name+' '+p.description+' '+p.seo.get('title','')+' '+p.seo.get('description','')
-    facts=(p.material+' '+p.size).lower()
-    claims=re.findall(r'(?i)(?:\d+(?:\.\d+)?\s*(?:mm|cm|kg|g|k|%|호)\b|925|실버|은도금|금도금|도금|순은|순금|스테인리스|티타늄|써지컬|니켈프리|알레르기|제조국|인증|made in)',text)
-    if any(claim.lower() not in facts for claim in claims): add('unverified_claim','소재·치수·인증을 단정한 표현을 확인된 정보와 일치하도록 수정해주세요.','field-description')
     return issues
 
 def missing(db,p):
