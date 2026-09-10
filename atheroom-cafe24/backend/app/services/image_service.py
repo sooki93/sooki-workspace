@@ -2,6 +2,7 @@ import hashlib, io, base64
 from pathlib import Path
 from PIL import Image, ImageOps, UnidentifiedImageError
 import imagehash, boto3
+from botocore.config import Config
 from app.config import settings
 MAX_BYTES=5*1024*1024
 Image.MAX_IMAGE_PIXELS=30_000_000
@@ -18,7 +19,7 @@ def process_image(raw):
     return output.getvalue(),hashlib.sha256(raw).hexdigest(),phash
 
 def s3():
-    return boto3.client('s3',endpoint_url=settings.s3_endpoint_url or None,region_name=settings.s3_region,aws_access_key_id=settings.s3_access_key_id or None,aws_secret_access_key=settings.s3_secret_access_key or None)
+    return boto3.client('s3',endpoint_url=settings.s3_endpoint_url or None,region_name=settings.s3_region,aws_access_key_id=settings.s3_access_key_id or None,aws_secret_access_key=settings.s3_secret_access_key or None,config=Config(s3={'addressing_style':settings.s3_addressing_style}))
 def put(key,data):
     if settings.storage_backend=='s3': s3().put_object(Bucket=settings.s3_bucket,Key=key,Body=data,ContentType='image/jpeg',ServerSideEncryption='AES256' if not settings.s3_endpoint_url else None) if not settings.s3_endpoint_url else s3().put_object(Bucket=settings.s3_bucket,Key=key,Body=data,ContentType='image/jpeg')
     else:

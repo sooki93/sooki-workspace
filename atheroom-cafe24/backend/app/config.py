@@ -1,4 +1,6 @@
 from pathlib import Path
+from typing import Literal
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -26,6 +28,17 @@ class Settings(BaseSettings):
     s3_region: str = 'auto'
     s3_access_key_id: str = ''
     s3_secret_access_key: str = ''
+    s3_addressing_style: Literal['auto','virtual','path'] = 'auto'
+
+    @field_validator('database_url')
+    @classmethod
+    def use_installed_postgres_driver(cls, value):
+        # Hosting providers supply plain PostgreSQL URLs; this app installs psycopg 3.
+        for prefix in ('postgres://', 'postgresql://'):
+            if value.startswith(prefix):
+                return 'postgresql+psycopg://' + value[len(prefix):]
+        return value
+
     def validate_runtime(self):
         if self.app_env == 'production':
             if self.demo_mode or not self.database_url.startswith('postgresql'):
