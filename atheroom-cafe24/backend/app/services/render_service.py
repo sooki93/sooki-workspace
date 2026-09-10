@@ -1,7 +1,22 @@
 import re, html, copy
 from collections import defaultdict, Counter
 from bs4 import BeautifulSoup
-from app.services.html_parser_service import sanitize
+from app.services.html_parser_service import sanitize, LABELS
+
+MANUAL_POLICY_ROLES={'SHIPPING','RETURNS'}
+
+def finish_layout(raw):
+    soup=BeautifulSoup(raw,'html.parser')
+    for old in soup.select('.photo-spacing'): old.decompose()
+    # Remove empty policy headings/containers after their text has been omitted.
+    for node in reversed(soup.find_all(['p','h1','h2','h3','h4','h5','h6','section','div'])):
+        if not node.get_text(strip=True) and not node.find(['img','br']): node.decompose()
+    for photo in soup.find_all('img'):
+        photo['style']=photo.get('style','').rstrip(';')+';display:block;margin:0 auto;'
+        gap=soup.new_tag('div',attrs={'class':'photo-spacing','style':'height:96px;line-height:24px;font-size:16px;margin:0;padding:0'})
+        for _ in range(4):gap.append(soup.new_tag('br'))
+        photo.insert_after(gap)
+    return sanitize(str(soup))
 
 LABEL={'NAME':'상품명','DESCRIPTION':'상품 설명','WEARING':'착용 사진','PRODUCT':'제품 사진','DETAIL':'제품 사진 · 디테일/클로즈업','SIZE_REFERENCE':'사이즈 이미지','SIZE':'사이즈 안내','MATERIAL':'소재 안내','NOTICE':'구매 안내','SHIPPING':'배송 안내','RETURNS':'교환/반품 안내','AS':'수리 안내','BRAND':'브랜드 안내','UNKNOWN':'확인 필요','ETC':'기타 이미지','MAIN_CANDIDATE':'메인 사진'}
 
@@ -50,13 +65,18 @@ def render(template,data,images,preview=False):
     values={'NAME':data.get('product_name',''),'DESCRIPTION':data.get('description',''),'SIZE':data.get('size',''),'MATERIAL':data.get('material','')}
     used=set()
     replacements=dict(template['fixed_blocks'])
+    for id,value in replacements.items():
+        if template.get('fixed_roles',{}).get(id) in MANUAL_POLICY_ROLES or LABELS.get(str(value).strip().lower()) in MANUAL_POLICY_ROLES:
+            replacements[id]=''
     for slot in template['slots']:
         role=slot['role']
+        if role in MANUAL_POLICY_ROLES:
+            replacements[slot['id']]=''; continue
         replacements[slot['id']]=values.get(role,'') if role not in used else ''
         if preview and not replacements[slot['id']] and role not in used: replacements[slot['id']]=LABEL.get(role,'확인할 내용')+' 입력 영역'
         used.add(role)
     result=re.sub(r'\{\{(t\d+)\}\}',lambda m:html.escape(str(replacements.get(m[1],''))).replace('\n','<br>'),result)
-    return sanitize(result)
+    return finish_layout(result)
 
 def compare(template,data,images):
     warnings=[]

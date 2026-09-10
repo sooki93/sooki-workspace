@@ -3,11 +3,11 @@ from sqlalchemy import select
 from app.db import get_db
 from app.models import TemplateProfile,User,Job,Cafe24Account,SourceProduct,now,BrandSettings
 from app.security import admin,current_user
-from app.services.render_service import render,LABEL
+from app.services.render_service import render,LABEL,MANUAL_POLICY_ROLES
 router=APIRouter(prefix='/api')
 
 def display_order(template):
-    order=template.get('section_order',[])
+    order=[role for role in template.get('section_order',[]) if role not in MANUAL_POLICY_ROLES]
     labels=[]; index=0
     while index<len(order):
         if order[index:index+3]==['DESCRIPTION','MATERIAL','SIZE']:
