@@ -3,6 +3,7 @@ from app.models import Product, ProductImage
 from app.services.cafe24_service import Cafe24Service,RemoteFailure
 from app.services.product_service import images_for,data,image_dict
 from app.services.render_service import render
+from app.services.brief_description_service import brief_description
 from app.services import image_service
 from app.config import settings
 
@@ -87,7 +88,7 @@ def publish_product(db,p,service=None,demo=False):
                 if urlparse(url).scheme!='https': raise ValueError('unsafe uploaded URL')
                 uploaded.append({**image_dict(im),'file_url':url})
             rendered=render(p.template_snapshot,data(p),uploaded)
-            step('description',lambda:service.update_product(number,{'description':rendered,'display':'F','selling':'F'}))
+            step('description',lambda:service.update_product(number,{'description':rendered,'simple_description':brief_description(data(p)),'display':'F','selling':'F'}))
         step('seo',lambda:service.request('PUT',f'/products/{number}/seo',payload={'shop_no':settings.cafe24_shop_no,'request':{'meta_title':p.seo.get('title') or p.product_name,'meta_description':p.seo.get('description') or p.description,'meta_keywords':','.join(p.keywords),'meta_alt':p.product_name,'search_engine_exposure':'F'}}))
         required=['create','main','description','seo']+(['additional'] if additional else [])+['image:'+i.id for i in pictures]
         unfinished=[k for k in required if p.upload_steps.get(k,{}).get('status')!='DONE']

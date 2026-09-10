@@ -3,18 +3,11 @@ from sqlalchemy import select
 from app.db import get_db
 from app.models import TemplateProfile,User,Job,Cafe24Account,SourceProduct,now,BrandSettings
 from app.security import admin,current_user
-from app.services.render_service import render,LABEL,MANUAL_POLICY_ROLES
+from app.services.render_service import render,LABEL,OMITTED_DETAIL_ROLES
 router=APIRouter(prefix='/api')
 
 def display_order(template):
-    order=[role for role in template.get('section_order',[]) if role not in MANUAL_POLICY_ROLES]
-    labels=[]; index=0
-    while index<len(order):
-        if order[index:index+3]==['DESCRIPTION','MATERIAL','SIZE']:
-            labels.append('상품 설명 · 소재 · 사이즈 안내'); index+=3
-        else:
-            labels.append(LABEL.get(order[index],order[index])); index+=1
-    return labels
+    return [LABEL.get(role,role) for role in template.get('section_order',[]) if role not in OMITTED_DETAIL_ROLES]
 
 def summary(p):
     return {'id':p.id,'version':p.version,'status':p.status,'analysis':p.analysis,'created_at':p.created_at,'section_order':display_order(p.global_template),'description_rules':p.global_template.get('description_rules',{}),'category_groups':list(p.category_templates),'styles':p.styles,'can_activate':bool(p.global_template) and not p.global_template.get('unresolved'),'preview_html':render(p.global_template,{},[],preview=True)}

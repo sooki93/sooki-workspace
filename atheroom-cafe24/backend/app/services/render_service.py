@@ -3,12 +3,12 @@ from collections import defaultdict, Counter
 from bs4 import BeautifulSoup
 from app.services.html_parser_service import sanitize, LABELS
 
-MANUAL_POLICY_ROLES={'SHIPPING','RETURNS'}
+OMITTED_DETAIL_ROLES={'MATERIAL','SIZE','SHIPPING','RETURNS'}
 
 def finish_layout(raw):
     soup=BeautifulSoup(raw,'html.parser')
     for old in soup.select('.photo-spacing'): old.decompose()
-    # Remove empty policy headings/containers after their text has been omitted.
+    # Remove empty generated headings/containers after their text has been omitted.
     for node in reversed(soup.find_all(['p','h1','h2','h3','h4','h5','h6','section','div'])):
         if not node.get_text(strip=True) and not node.find(['img','br']): node.decompose()
     for photo in soup.find_all('img'):
@@ -66,11 +66,11 @@ def render(template,data,images,preview=False):
     used=set()
     replacements=dict(template['fixed_blocks'])
     for id,value in replacements.items():
-        if template.get('fixed_roles',{}).get(id) in MANUAL_POLICY_ROLES or LABELS.get(str(value).strip().lower()) in MANUAL_POLICY_ROLES:
+        if template.get('fixed_roles',{}).get(id) in OMITTED_DETAIL_ROLES or LABELS.get(str(value).strip().lower()) in OMITTED_DETAIL_ROLES:
             replacements[id]=''
     for slot in template['slots']:
         role=slot['role']
-        if role in MANUAL_POLICY_ROLES:
+        if role in OMITTED_DETAIL_ROLES:
             replacements[slot['id']]=''; continue
         replacements[slot['id']]=values.get(role,'') if role not in used else ''
         if preview and not replacements[slot['id']] and role not in used: replacements[slot['id']]=LABEL.get(role,'확인할 내용')+' 입력 영역'

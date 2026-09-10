@@ -16,7 +16,7 @@ def test_declared_template_and_combined_information_section():
     t=template()
     assert t['section_order']==ORDER
     assert len(display_order(t))==8
-    assert display_order(t)[1]=='상품 설명 · 소재 · 사이즈 안내'
+    assert display_order(t)[1]=='상품 설명'
     assert not t['unresolved']
 def test_main_and_three_alternating_pairs_keep_exact_order():
     t=template()
@@ -24,7 +24,8 @@ def test_main_and_three_alternating_pairs_keep_exact_order():
     soup=BeautifulSoup(html,'html.parser')
     assert [i['src'].rsplit('/',1)[1] for i in soup.find_all('img')]==['main.jpg','wear1.jpg','product1.jpg','wear2.jpg','product2.jpg','wear3.jpg','detail.jpg']
     info=soup.select_one('.product-information').get_text()
-    assert '새 설명' in info and '확인 소재' in info and '확인 치수' in info
+    assert '새 설명' in info and '확인 소재' not in info and '확인 치수' not in info
+    assert not soup.select('.product-information h3')
     assert html.index('main.jpg')<html.index('새 설명')<html.index('wear1.jpg')
     assert '배송 안내' not in html and '교환/반품 안내' not in html
     assert not soup.select('.shipping, .returns')
@@ -46,7 +47,7 @@ def test_surplus_product_photo_stays_in_last_product_section():
         assert len(gap.find_all('br',recursive=False))==4
 
 def test_policy_text_is_omitted_without_changing_operator_copy():
-    copy='배송 안내는 추후 사진으로 넣겠습니다.'
+    copy='comment\n직접 쓴 설명\ndetail info\nmaterial 신주\nsize 60cm\n배송 안내는 추후 사진으로 넣겠습니다.'
     html=render(template(),{'main_image_id':'main','description':copy},photos())
-    assert copy in html
+    assert BeautifulSoup(html,'html.parser').select_one('.product-information p').get_text('\n')==copy
     assert '체험용 배송 안내' not in html and '체험용 교환' not in html

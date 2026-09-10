@@ -34,7 +34,11 @@ def test_publishing_matches_cafe24_http_contract(monkeypatch):
             elif request.method=='POST':
                 assert body['request']['display']==body['request']['selling']=='F'
                 data={'product':{'product_no':123}}
-            else:data={'ok':True}
+            else:
+                if request.url.path.endswith('/products/123'):
+                    assert body['request']['simple_description'].startswith('detail info<br>material')
+                    assert '모니터 해상도에 따라 컬러 차이가 있을 수 있습니다.' in body['request']['simple_description']
+                data={'ok':True}
         return httpx.Response(201 if request.method=='POST' else 200,json=data)
     engine=create_engine('sqlite://');Base.metadata.create_all(engine)
     with Session(engine,expire_on_commit=False) as db:

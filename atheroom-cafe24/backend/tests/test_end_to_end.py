@@ -43,7 +43,8 @@ def test_complete_operator_flow(tmp_path,monkeypatch):
             r=c.put(f'/api/products/{id}/images',json={'revision':p['revision'],'main_image_id':p['main_image_id'],'images':[{'id':i['id'],'image_type':'PRODUCT','confirmed':True} for i in p['images']]});assert r.status_code==200,r.text
             p=c.get('/api/products/'+id).json()
             assert not p['missing_fields']
-            assert '기존 상품 소재' not in p['rendered_html'] and '사용자 확인 소재' in p['rendered_html']
+            assert '기존 상품 소재' not in p['rendered_html'] and '사용자 확인 소재' not in p['rendered_html']
+            assert p['material']=='사용자 확인 소재'
             assert c.post(f'/api/products/{id}/publish',json={'revision':p['revision']}).status_code==409
             r=c.post(f'/api/products/{id}/review',json={'revision':p['revision'],'acknowledge_warnings':True});assert r.status_code==200,r.text
             assert c.post(f'/api/products/{id}/publish',json={'revision':p['revision']}).status_code==200

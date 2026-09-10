@@ -8,7 +8,7 @@ def test_render_preserves_structure_and_prevents_source_leak():
     assert 'class="keep"' in result and '공통 구매 안내' in result
     assert '기존 고유 설명' not in result and '123cm' not in result and 'old.example' not in result
     assert '<script>' not in result and result.count('<img')==2
-    assert result.index('SIZE')<result.index('MATERIAL')<result.index('NOTICE')
+    assert 'SIZE' not in result and 'MATERIAL' not in result and 'NOTICE' in result
 def test_single_pass_interpolation():
     result=render(template(),{'description':'{{t4}}','size':'new size','material':'new material'},[])
     assert '{{t4}}' in result
