@@ -8,6 +8,13 @@ from app.schemas.ai import Group
 from app.config import settings
 from app.services.cafe24_service import Cafe24Service
 router=APIRouter(prefix='/api')
+@router.get('/ai/status')
+def ai_status(user=Depends(admin)):
+    if settings.ai_provider == 'codex':
+        from app.services.codex_service import connection_status
+        return {'provider':'codex', **connection_status()}
+    return {'provider':'openai','ready':bool(settings.openai_api_key),'message':'OpenAI API 방식입니다. API 사용료가 별도로 발생합니다.'}
+
 class SettingsEdit(BaseModel):
     model_config=ConfigDict(extra='forbid')
     require_material: bool

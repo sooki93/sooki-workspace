@@ -26,6 +26,8 @@ def reanalyze(user=Depends(admin),db=Depends(get_db)):
     if not db.scalar(select(Cafe24Account).where(Cafe24Account.user_id==user.id)): raise HTTPException(400,'먼저 쇼핑몰을 연결해주세요.')
     running=db.scalar(select(Job).where(Job.user_id==user.id,Job.kind=='ANALYZE',Job.status.in_(['QUEUED','RUNNING'])))
     if running: return {'job_id':running.id}
+    for waiting in db.scalars(select(Job).where(Job.user_id==user.id,Job.kind=='ANALYZE',Job.status=='WAITING')):
+        waiting.status='CANCELLED'; waiting.message='새 요청으로 다시 시작했습니다.'
     job=Job(user_id=user.id,kind='ANALYZE'); db.add(job); db.commit(); return {'job_id':job.id}
 @router.post('/templates/{id}/activate')
 def activate(id:str,user=Depends(admin),db=Depends(get_db)):

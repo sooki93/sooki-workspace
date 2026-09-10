@@ -20,6 +20,7 @@ if [[ ! -d .venv ]]; then "$PYTHON_BIN" -m venv .venv; fi
 export FRONTEND_ORIGIN="http://127.0.0.1:${STUDIO_PORT:-3011}"
 export BACKEND_URL="http://127.0.0.1:${STUDIO_BACKEND_PORT:-8011}"
 export DEMO_MODE=true APP_ENV=development STORAGE_BACKEND=local
+export AI_PROVIDER=codex DEMO_AI_ENABLED="${DEMO_AI_ENABLED:-true}"
 export DATABASE_URL="sqlite:///$PROJECT_ROOT/.local-cache/demo.db"
 export UPLOAD_DIR="$PROJECT_ROOT/.local-cache/uploads"
 mkdir -p .local-cache/uploads

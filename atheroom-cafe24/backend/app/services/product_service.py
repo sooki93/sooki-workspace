@@ -96,6 +96,7 @@ def allowed_image_types(p):
     return [role for role in ('WEARING','PRODUCT','DETAIL','SIZE_REFERENCE','ETC') if role in {i['type'] for i in p.template_snapshot.get('images',[])}] if p.template_snapshot else ['WEARING','PRODUCT','DETAIL','SIZE_REFERENCE']
 
 def generate(db,p,demo=False):
+    mock_ai = demo and not settings.demo_ai_enabled
     images=images_for(db,p)
     if not images: raise ValueError('먼저 상품 사진을 올려주세요.')
     brand=db.get(BrandSettings,p.user_id)
@@ -103,12 +104,12 @@ def generate(db,p,demo=False):
     selected_group=p.internal_product_group
     preserve_image_order=any(i.confirmed for i in images)
     inputs=[{'id':i.id,'url':image_service.data_url(i.storage_key)} for i in images]
-    if demo:
+    if mock_ai:
         output=ProductAnalysis.model_validate({'product_group':{'value':p.internal_product_group,'confidence':.5},'product_name':'직접 확인할 상품명','description':'사진을 확인하고 제품의 구조와 특징을 입력해주세요.','category_recommendation':{'value':p.internal_product_group,'confidence':.5},'search_keywords':[],'seo_title':'','seo_description':'','images':[{'id':i.id,'type':'PRODUCT','confidence':0} for i in images],'missing_fields':['price','supply_price','material','size']}).model_dump(mode='json')
     else: output=analyze_product(p,inputs,brand.rules)
     p.internal_product_group=selected_group if group_confirmed else output['product_group']['value']
     choose_template(db,p)
-    if not demo:
+    if not mock_ai:
         # Second pass writes with the now-selected saved category style; never re-fetches source products.
         output=analyze_product(p,inputs,brand.rules,{'product_name_rules':p.template_snapshot['product_name_rules'],'description_rules':p.template_snapshot['description_rules'],'image_rules':p.template_snapshot['image_rules']})
         if output['product_group']['value']!=p.internal_product_group:
@@ -135,5 +136,5 @@ def generate(db,p,demo=False):
         for order,guess in enumerate(output['images']):
             next(i for i in images if i.id==guess['id']).sort_order=order
     p.revision+=1; p.reviewed_revision=None
-    db.add(AIGeneration(product_id=p.id,input={'image_ids':[i.id for i in images],'user_facts':{'material':p.material,'size':p.size},'template_profile_id':p.template_profile_id},output=output,model='demo-no-ai' if demo else settings.openai_model))
-    refresh_preview(db,p); p.status='NEEDS_INPUT' if missing(db,p) else 'AI_GENERATED'; db.commit()
+    db.add(AIGeneration(product_id=p.id,input={'image_ids':[i.id for i in images],'user_facts':{'material':p.material,'size':p.size},'template_profile_id':p.template_profile_id},output=output,model='demo-no-ai' if mock_ai else 'codex-subscription' if settings.ai_provider=='codex' else settings.openai_model))
+    refresh_preview(db,p); p.status='NEEDS_INPUT' if missing(db,p) else 'AI_GENERATED'; p.message=''; db.commit()

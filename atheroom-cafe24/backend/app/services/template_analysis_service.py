@@ -8,6 +8,7 @@ from app.services.style_clustering_service import cluster,select_stable
 from app.services.openai_service import analyze_source
 from app.services.cafe24_service import Cafe24Service
 from app.config import settings
+from app.services.ai_errors import AIUsageLimit, AIConnectionRequired
 
 def creation_time(row):
     value=datetime.fromisoformat(row['created_date'].replace('Z','+00:00'))
@@ -57,6 +58,7 @@ def build_profile(db,user_id,demo=False):
             return {'product_no':record.product_no,'parsed':parsed,'created_date':record.created_date}
         for row in candidates:
             try: successful.append(analyze(row))
+            except (AIUsageLimit, AIConnectionRequired): raise
             except Exception as exc:
                 db.rollback(); failed+=1; logging.warning('source_analysis_failed product=%s type=%s',row['product_no'],type(exc).__name__)
         category_samples={g:[s for s in successful if s['parsed']['group']==g] for g in GROUPS}
@@ -73,6 +75,7 @@ def build_profile(db,user_id,demo=False):
                     sample=analyze(row); actual=sample['parsed']['group']
                     if actual in sparse and len(category_samples[actual])<5:
                         category_samples[actual].append(sample); extra_count+=1
+                except (AIUsageLimit, AIConnectionRequired): raise
                 except Exception as exc:
                     db.rollback(); extra_failed+=1; logging.warning('supplement_failed type=%s',type(exc).__name__)
         styles={}; global_template={}; categories={}

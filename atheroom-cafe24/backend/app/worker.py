@@ -8,6 +8,7 @@ from app.services.product_service import generate
 from app.services.upload_service import publish_product
 from app.services.duplicate_service import sync_catalogue,duplicates
 from app.config import settings
+from app.services.ai_errors import AIUsageLimit, AIConnectionRequired
 stop=False
 
 def execute(db,job):
@@ -29,6 +30,12 @@ def execute(db,job):
                         p.status='REVIEWED';p.message='비슷한 기존 상품이 발견되었습니다. 다시 등록 버튼을 누르고 비교 결과를 확인해주세요.';db.commit();job.status='DONE';db.commit();return
                 publish_product(db,p,demo=demo)
         job.status='DONE';job.message='작업을 마쳤습니다.';db.commit()
+    except (AIUsageLimit, AIConnectionRequired) as exc:
+        db.rollback(); job=db.get(Job,job.id); job.status='WAITING'; job.message=str(exc)
+        if job.kind=='GENERATE':
+            p=db.get(Product,job.target_id)
+            if p: p.status='AI_WAITING'; p.message=job.message
+        db.commit()
     except Exception as exc:
         db.rollback();job=db.get(Job,job.id);job.status='FAILED'
         job.message=str(exc) if isinstance(exc,ValueError) or type(exc).__name__=='RemoteFailure' else '작업을 마치지 못했습니다. 다시 시도해주세요.'

@@ -40,7 +40,9 @@ def generate(id:str,user=Depends(current_user),db=Depends(get_db)):
     p=owned(db,user.id,id,True); editable(p)
     if not images_for(db,p): raise HTTPException(400,'먼저 상품 사진을 올려주세요.')
     if not db.scalar(select(TemplateProfile).where(TemplateProfile.user_id==user.id,TemplateProfile.status=='ACTIVE')): raise HTTPException(400,'기존 상품 형식을 먼저 승인해주세요.')
-    p.status='AI_GENERATING'; p.reviewed_revision=None
+    for waiting in db.scalars(select(Job).where(Job.user_id==user.id,Job.target_id==p.id,Job.kind=='GENERATE',Job.status=='WAITING')):
+        waiting.status='CANCELLED'; waiting.message='새 요청으로 다시 시작했습니다.'
+    p.status='AI_GENERATING'; p.reviewed_revision=None; p.message=''
     job=Job(user_id=user.id,target_id=p.id,kind='GENERATE'); db.add(job); db.commit(); return {'job_id':job.id}
 @router.post('/{id}/fit')
 def fit(id:str,user=Depends(current_user),db=Depends(get_db)):

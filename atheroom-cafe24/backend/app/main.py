@@ -79,7 +79,7 @@ def public_settings(): return {'demo':settings.demo_mode}
 @app.get('/api/me')
 def me(user=Depends(current_user),db=Depends(get_db)):
     account=db.scalar(select(Cafe24Account).where(Cafe24Account.user_id==user.id))
-    return {'email':user.email,'role':user.role,'demo':settings.demo_mode,'connected':bool(account),'mall_name':'체험 쇼핑몰' if account and account.demo else (account.mall_id if account else '')}
+    return {'email':user.email,'role':user.role,'demo':settings.demo_mode,'connected':bool(account),'mall_name':'체험 쇼핑몰' if account and account.demo else (account.mall_id if account else ''),'ai_provider':settings.ai_provider,'demo_ai_enabled':settings.demo_ai_enabled}
 @app.get('/api/cafe24/connect')
 def connect(request:Request,user=Depends(admin),db=Depends(get_db)):
     state=secrets.token_urlsafe(32); url=auth_url(state)

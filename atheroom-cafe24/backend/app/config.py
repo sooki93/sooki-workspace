@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Literal
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     cafe24_shop_no: int = 1
     openai_api_key: str = ''
     openai_model: str = 'gpt-4.1'
+    ai_provider: Literal['codex', 'openai'] = 'codex'
+    demo_ai_enabled: bool = False
+    codex_binary: str = 'codex'
+    codex_timeout_seconds: int = Field(default=300, ge=15, le=900)
     storage_backend: str = 'local'
     upload_dir: str = './data/uploads'
     s3_endpoint_url: str = ''
