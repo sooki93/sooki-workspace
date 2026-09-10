@@ -125,3 +125,56 @@ def test_regeneration_preserves_confirmed_group_photos_and_order(draft):
     assert [i['id'] for i in result['images']] == [i['id'] for i in photos]
     assert all(i['confirmed'] and i['image_type'] == 'WEARING' for i in result['images'] if i['id'] != p['main_image_id'])
     assert not result['missing_fields']
+
+
+def test_regeneration_preserves_operator_text_but_blank_fields_can_regenerate(draft):
+    client, product_id, drain = draft
+    p = confirm_group(client, product_id)
+    payload = {key: p[key] for key in ('revision', 'product_name', 'price', 'supply_price', 'internal_product_group', 'cafe24_category_id', 'description', 'material', 'size', 'keywords', 'main_image_id', 'reference_product_id')}
+    payload.update(product_name='직접 작성한 상품명', description='운영자가 확인한 구조 설명입니다.', keywords=['직접키워드'], seo_title='직접 작성한 검색 제목')
+    r = client.put('/api/products/' + product_id, json=payload)
+    assert r.status_code == 200
+    assert client.post(f'/api/products/{product_id}/generate').status_code == 200
+    drain()
+    p = client.get('/api/products/' + product_id).json()
+    assert p['product_name'] == payload['product_name']
+    assert p['description'] == payload['description']
+    assert p['keywords'] == payload['keywords']
+    assert p['seo']['title'] == payload['seo_title']
+    payload.update(revision=p['revision'], description='')
+    assert client.put('/api/products/' + product_id, json=payload).status_code == 200
+    assert client.post(f'/api/products/{product_id}/generate').status_code == 200
+    drain()
+    assert client.get('/api/products/' + product_id).json()['description']
+
+
+def test_demo_mode_cannot_start_real_oauth(draft):
+    client, _, _ = draft
+    assert client.get('/api/cafe24/connect', follow_redirects=False).status_code == 400
+    assert client.get('/api/cafe24/callback?code=unused&state=unused').status_code == 400
+
+
+def test_changed_template_requires_applying_and_reviewing_again(draft):
+    client, product_id, drain = draft
+    confirm_group(client, product_id)
+    p = classify(client, product_id)
+    assert client.post(f'/api/products/{product_id}/review', json={'revision': p['revision'], 'acknowledge_warnings': True}).status_code == 200
+    assert client.post('/api/templates/analyze').status_code == 200
+    drain()
+    profile = client.get('/api/templates').json()[0]
+    assert client.post('/api/templates/' + profile['id'] + '/activate').status_code == 200
+    assert client.post(f'/api/products/{product_id}/publish', json={'revision': p['revision']}).status_code == 409
+    p = client.post(f'/api/products/{product_id}/fit').json()
+    assert p['status'] != 'REVIEWED'
+    assert client.post(f'/api/products/{product_id}/review', json={'revision': p['revision'], 'acknowledge_warnings': True}).status_code == 200
+
+
+def test_invalid_price_identifies_the_field(draft):
+    client, product_id, _ = draft
+    p = client.get('/api/products/' + product_id).json()
+    payload = {key: p[key] for key in ('revision', 'product_name', 'price', 'supply_price', 'internal_product_group', 'cafe24_category_id', 'description', 'material', 'size', 'keywords', 'main_image_id', 'reference_product_id')}
+    payload['price'] = -1
+    response = client.put('/api/products/' + product_id, json=payload)
+    assert response.status_code == 422
+    assert '판매가' in response.json()['detail']
+    assert client.get('/api/products/' + product_id).json()['price'] == p['price']

@@ -17,7 +17,7 @@ def publish(id:str,body:Publish,user=Depends(current_user),db=Depends(get_db)):
     if p.status=='UPLOADED': return {'ok':True}
     if p.status!='REVIEWED' or p.revision!=body.revision or p.reviewed_revision!=p.revision: raise HTTPException(409,'내용을 다시 확인하고 검수를 완료해주세요.')
     active=db.scalar(select(TemplateProfile).where(TemplateProfile.user_id==user.id,TemplateProfile.status=='ACTIVE'))
-    if not active or p.template_profile_id!=active.id: raise HTTPException(409,'사용 중인 상품 형식이 바뀌었습니다. 기존 형식에 맞추기를 누른 뒤 다시 검수해주세요.')
+    if not active or p.template_profile_id!=active.id: raise HTTPException(409,'사용 중인 상품 형식이 바뀌었습니다. 새 형식 적용하고 다시 확인을 누른 뒤 다시 검수해주세요.')
     required=missing(db,p)
     if required: raise HTTPException(400,' '.join(required))
     if duplicates(db,p) and not body.allow_duplicate: raise HTTPException(409,'비슷한 상품이 있습니다. 확인 후 다시 등록해주세요.')

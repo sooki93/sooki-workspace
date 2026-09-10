@@ -31,7 +31,7 @@ class Cafe24Service:
         self.db.commit()
         return token
     def request(self, method, path, params=None, payload=None):
-        if self.account.demo: raise RemoteFailure('체험 데이터는 실제 쇼핑몰에 전송되지 않습니다.')
+        if settings.demo_mode or self.account.demo: raise RemoteFailure('체험 모드에서는 실제 쇼핑몰에 전송하지 않습니다.')
         for attempt in range(4):
             token = self.token()
             time.sleep(.51)
@@ -71,6 +71,7 @@ class Cafe24Service:
         return self.request('PUT',f'/products/{number}',payload={'shop_no':settings.cafe24_shop_no,'request':payload})
 
 def auth_url(state):
+    if settings.demo_mode: raise HTTPException(400,'체험 모드에서는 실제 쇼핑몰을 연결하지 않습니다.')
     mall=settings.cafe24_mall_id
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,49}', mall) or not settings.cafe24_client_id or not settings.cafe24_client_secret:
         raise HTTPException(503, '쇼핑몰 연결 준비가 필요합니다. 운영 담당자에게 문의해주세요.')

@@ -64,7 +64,7 @@ def compare(template,data,images):
     pools=image_pools(template,data,images)
     for role,count in expected.items():
         actual=len(pools.get(role,[]))
-        if actual<count: warnings.append(f'{LABEL.get(role,"상품 사진")} 영역 {count}곳 중 {count-actual}곳에 사진이 필요합니다.')
+        if actual<count: warnings.append(f'{LABEL.get(role,"상품 사진")} 영역 {count}곳 중 {count-actual}곳이 비어 있습니다. 이대로 진행하면 빈 영역은 생략됩니다.')
     avg=template.get('description_rules',{}).get('average_length',0)
     if avg and not .5*avg<=len(data.get('description',''))<=1.8*avg: warnings.append('상품 설명 길이가 기존 상품과 다릅니다.')
     name_avg=template.get('product_name_rules',{}).get('average_length',0)

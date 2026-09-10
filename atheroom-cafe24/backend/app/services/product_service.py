@@ -120,8 +120,17 @@ def generate(db,p,demo=False):
         guess=guesses[i.id]
         if not i.confirmed:
             i.image_type=guess['type'] if guess['confidence']>=.6 else 'ETC'; i.ai_confidence=guess['confidence']; i.confirmed=guess['confidence']>=.85
-    p.product_name=output['product_name']; p.description=output['description']; p.keywords=output['search_keywords']; p.seo={'title':output['seo_title'],'description':output['seo_description']}
-    p.ai_result={**output,'group_confirmed':group_confirmed}
+    manual=set(p.ai_result.get('manual_fields',[]))
+    # Older drafts have no field markers: preserve text that differs from their last AI result.
+    if 'manual_fields' not in p.ai_result:
+        for field,output_key in (('product_name','product_name'),('description','description'),('keywords','search_keywords')):
+            if getattr(p,field) and getattr(p,field)!=p.ai_result.get(output_key): manual.add(field)
+        for field in ('title','description'):
+            if p.seo.get(field) and p.seo[field]!=p.ai_result.get('seo_'+field): manual.add('seo_'+field)
+    for field,output_key in (('product_name','product_name'),('description','description'),('keywords','search_keywords')):
+        if field not in manual: setattr(p,field,output[output_key])
+    p.seo={field:p.seo.get(field,'') if 'seo_'+field in manual else output['seo_'+field] for field in ('title','description')}
+    p.ai_result={**output,'group_confirmed':group_confirmed,'manual_fields':sorted(manual)}
     if not group_confirmed: p.cafe24_category_id=brand.category_mapping.get(p.internal_product_group)
     if not preserve_image_order:
         for order,guess in enumerate(output['images']):

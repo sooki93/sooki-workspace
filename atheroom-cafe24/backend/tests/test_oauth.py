@@ -22,6 +22,7 @@ def test_state_is_bound_expiring_and_one_time(monkeypatch):
     try:
         with TestClient(app) as client:
             client.headers['origin']='http://testserver';client.post('/api/session',json={})
+            monkeypatch.setattr(settings,'demo_mode',False)
             response=client.get('/api/cafe24/connect',follow_redirects=False)
             assert response.status_code==307
             from urllib.parse import parse_qs,urlparse

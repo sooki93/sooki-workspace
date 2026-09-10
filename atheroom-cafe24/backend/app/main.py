@@ -37,7 +37,17 @@ async def boundary(request, call_next):
 @app.exception_handler(RemoteFailure)
 async def remote_error(request, exc): return JSONResponse({'detail':str(exc)},503)
 @app.exception_handler(RequestValidationError)
-async def validation_error(request, exc): return JSONResponse({'detail':'입력 내용을 확인해주세요. 숫자와 필수 항목을 올바르게 입력해주세요.'},422)
+async def validation_error(request, exc):
+    issue=exc.errors()[0] if exc.errors() else {}
+    location=issue.get('loc',())
+    field=location[1] if len(location)>1 else ''
+    labels={'price':'판매가','supply_price':'공급가','product_name':'상품명','description':'상품 설명','material':'소재','size':'사이즈','cafe24_category_id':'쇼핑몰 카테고리','internal_product_group':'상품군','keywords':'검색 키워드'}
+    if field in ('price','supply_price'):
+        message=labels[field]+'를 확인해주세요. 0원 이상의 정수를 입력하고 금액이 너무 크지 않은지 확인해주세요.'
+    elif field=='files': message='업로드할 사진을 선택해주세요.'
+    elif field in labels: message=labels[field]+' 입력 내용을 확인해주세요.'
+    else: message='입력 내용을 확인해주세요. 숫자와 필수 항목을 올바르게 입력해주세요.'
+    return JSONResponse({'detail':message},422)
 @app.exception_handler(Exception)
 async def unexpected_error(request, exc):
     logging.error('Request failed: %s',type(exc).__name__)
@@ -77,6 +87,7 @@ def connect(request:Request,user=Depends(admin),db=Depends(get_db)):
     return RedirectResponse(url)
 @app.get('/api/cafe24/callback')
 def callback(request:Request,state:str='',code:str='',error:str='',user=Depends(admin),db=Depends(get_db)):
+    if settings.demo_mode: raise HTTPException(400,'체험 모드에서는 실제 쇼핑몰을 연결하지 않습니다.')
     record=db.scalar(select(OAuthState).where(OAuthState.id==digest(state)).with_for_update())
     if not record or record.user_id!=user.id or record.session_hash!=digest(request.cookies.get('studio_session','')) or utc(record.expires_at)<datetime.now(timezone.utc):
         raise HTTPException(400,'연결 승인이 만료되었습니다. 다시 연결해주세요.')

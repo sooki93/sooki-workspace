@@ -14,6 +14,8 @@ def execute(db,job):
     account=db.scalar(select(Cafe24Account).where(Cafe24Account.user_id==job.user_id))
     demo=bool(account and account.demo)
     try:
+        if not account or account.demo!=settings.demo_mode:
+            raise ValueError('현재 실행 모드와 쇼핑몰 연결이 다릅니다. 체험용과 실제 운영용 작업실을 분리해주세요.')
         if job.kind=='ANALYZE': build_profile(db,job.user_id,demo)
         elif job.kind=='INDEX': sync_catalogue(db,job.user_id)
         else:

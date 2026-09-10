@@ -22,10 +22,17 @@ def get_product(id:str,user=Depends(current_user),db=Depends(get_db)): return se
 def edit(id:str,body:ProductEdit,user=Depends(current_user),db=Depends(get_db)):
     p=owned(db,user.id,id,True); editable(p,body.revision)
     if body.main_image_id and body.main_image_id not in {i.id for i in images_for(db,p)}: raise HTTPException(400,'대표 이미지를 다시 선택해주세요.')
+    manual=set(p.ai_result.get('manual_fields',[]))
+    for key in ('product_name','description','keywords','seo_title','seo_description'):
+        previous=p.seo.get(key[4:],'') if key.startswith('seo_') else getattr(p,key)
+        value=getattr(body,key)
+        if value!=previous:
+            if value: manual.add(key)
+            else: manual.discard(key)
     for key,value in body.model_dump(exclude={'revision','seo_title','seo_description'}).items(): setattr(p,key,value)
     p.internal_product_group=body.internal_product_group.value
     p.seo={'title':body.seo_title,'description':body.seo_description}
-    p.ai_result={**p.ai_result,'group_confirmed':True}
+    p.ai_result={**p.ai_result,'group_confirmed':True,'manual_fields':sorted(manual)}
     if p.template_profile_id: choose_template(db,p)
     touch(p); refresh_preview(db,p); db.commit(); return serialize(db,p)
 @router.post('/{id}/generate')
