@@ -6,6 +6,7 @@ from app.services.upload_service import publish_product,DemoCommerce
 from app.services.cafe24_service import RemoteFailure
 from app.services.template_analysis_service import demo_sources
 from app.services.html_parser_service import parse_html,compile_template
+import pytest
 class Recording(DemoCommerce):
     def __init__(self): self.calls=[]; self.fail=True
     def create_product(self,payload):
@@ -40,3 +41,15 @@ def test_unknown_create_is_never_reissued():
         p=fixture(db);p.upload_steps={'create':{'status':'UNKNOWN'}};db.commit()
         service=Recording();publish_product(db,p,service)
         assert p.status=='FAILED' and not p.cafe24_product_no and not service.calls
+
+def test_product_price_basis_is_checked_before_creating():
+    class ProductPriceShop(Recording):
+        def request(self,method,path,params=None,payload=None):
+            if path=='/products/setting': return {'setting':{'calculate_price_based_on':'B'}}
+            return super().request(method,path,params,payload)
+    engine=create_engine('sqlite://');Base.metadata.create_all(engine)
+    with Session(engine,expire_on_commit=False) as db:
+        p=fixture(db);service=ProductPriceShop()
+        with pytest.raises(RemoteFailure):publish_product(db,p,service)
+        assert p.cafe24_product_no is None
+        assert not any(c[0]=='create' for c in service.calls)

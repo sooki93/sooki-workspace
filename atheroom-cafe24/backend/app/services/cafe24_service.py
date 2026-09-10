@@ -36,7 +36,9 @@ class Cafe24Service:
             token = self.token()
             time.sleep(.51)
             try:
-                response = self.client.request(method, f'https://{self.mall}.cafe24api.com/api/v2/admin{path}', params={'shop_no':settings.cafe24_shop_no, **(params or {})}, json=payload, headers={'Authorization':f'Bearer {token}', 'X-Cafe24-Api-Version':settings.cafe24_api_version})
+                # Cafe24 rejects query strings on POST/PUT; their shop_no belongs in the JSON body.
+                query = {'shop_no':settings.cafe24_shop_no, **(params or {})} if method in ('GET','DELETE') else None
+                response = self.client.request(method, f'https://{self.mall}.cafe24api.com/api/v2/admin{path}', params=query, json=payload, headers={'Authorization':f'Bearer {token}', 'X-Cafe24-Api-Version':settings.cafe24_api_version})
             except httpx.TransportError as exc:
                 if method == 'GET' and attempt < 3: time.sleep(2**attempt); continue
                 raise RemoteFailure(ambiguous=method != 'GET') from exc
@@ -75,7 +77,7 @@ def auth_url(state):
     mall=settings.cafe24_mall_id
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,49}', mall) or not settings.cafe24_client_id or not settings.cafe24_client_secret:
         raise HTTPException(503, '쇼핑몰 연결 준비가 필요합니다. 운영 담당자에게 문의해주세요.')
-    return f'https://{mall}.cafe24api.com/api/v2/oauth/authorize?' + urlencode({'response_type':'code','client_id':settings.cafe24_client_id,'redirect_uri':settings.cafe24_redirect_uri,'scope':'mall.read_product,mall.write_product,mall.read_category','state':state})
+    return f'https://{mall}.cafe24api.com/api/v2/oauth/authorize?' + urlencode({'response_type':'code','client_id':settings.cafe24_client_id,'redirect_uri':settings.cafe24_redirect_uri,'scope':'mall.read_product,mall.write_product,mall.read_category,mall.read_store','state':state})
 def exchange_token(mall, data, client):
     try:
         r=client.post(f'https://{mall}.cafe24api.com/api/v2/oauth/token', data=data, auth=(settings.cafe24_client_id, settings.cafe24_client_secret))

@@ -13,8 +13,10 @@ class DemoCommerce:
     def create_product(self,payload): return {'product_no':int(payload['custom_product_code'][-6:],16)}
     def update_product(self,number,payload): return {'ok':True}
     def request(self,method,path,params=None,payload=None):
-        if path=='/products/setting': return {'setting':{'calculated_price_based_on':'A'}}
+        if path=='/products/setting': return {'setting':{'calculate_price_based_on':'A'}}
         if path=='/products/images': return {'images':[{'path':'https://demo.invalid/example.jpg'}]}
+        if method=='POST' and path.endswith('/images'):
+            return {'image':{key:'https://demo.invalid/example.jpg' for key in ('detail_image','list_image','tiny_image','small_image')}}
         return {'ok':True}
 
 def checkpoint(db,p,key,status,**extra):
@@ -44,7 +46,7 @@ def publish_product(db,p,service=None,demo=False):
                 p.status='FAILED'; p.message='쇼핑몰의 등록 결과가 아직 확인되지 않습니다. 중복 방지를 위해 다시 만들지 않았습니다. 잠시 후 등록 결과를 다시 확인해주세요.'; db.commit(); return
             else:
                 shop=service.request('GET','/products/setting').get('setting',{})
-                if shop.get('calculated_price_based_on')=='B':
+                if shop.get('calculate_price_based_on')=='B':
                     raise RemoteFailure('이 쇼핑몰은 세금 제외 금액으로 등록합니다. 운영 담당자가 금액 기준을 연결한 후 다시 진행해주세요.')
                 payload={'product_name':p.product_name,'price':str(p.price),'supply_price':str(p.supply_price),'display':'F','selling':'F','has_option':'F','custom_product_code':code,'product_tag':p.keywords,'add_category_no':[{'category_no':p.cafe24_category_id,'recommend':'F','new':'F'}]}
                 result=step('create',lambda:service.create_product(payload))
@@ -55,14 +57,21 @@ def publish_product(db,p,service=None,demo=False):
         number=p.cafe24_product_no
         for im in pictures:
             def upload(im=im):
-                response=service.request('POST','/products/images',payload={'request':{'image':[image_service.encoded(im.storage_key)]}})
+                response=service.request('POST','/products/images',payload={'requests':[{'image':image_service.encoded(im.storage_key)}]})
                 path=response['images'][0]['path']
                 if not isinstance(path,str) or not path: raise ValueError('missing uploaded path')
                 return path
             step('image:'+im.id,upload)
         main=p.upload_steps.get('image:'+str(p.main_image_id),{})
         if main.get('status')=='DONE':
-            step('main',lambda:service.request('POST',f'/products/{number}/images',payload={'shop_no':settings.cafe24_shop_no,'request':{'image_upload_type':'A','detail_image':main['result']}}))
+            def upload_main():
+                im=next(im for im in pictures if im.id==p.main_image_id)
+                response=service.request('POST',f'/products/{number}/images',payload={'shop_no':settings.cafe24_shop_no,'request':{'image_upload_type':'A','detail_image':'data:image/jpeg;base64,'+image_service.encoded(im.storage_key)}})
+                # A 201 can still contain null image URLs when Cafe24 could not decode the input.
+                if not all(response.get('image',{}).get(key) for key in ('detail_image','list_image','tiny_image','small_image')):
+                    raise RemoteFailure('대표 사진이 저장되지 않았습니다. 다시 등록해주세요.')
+                return response
+            step('main',upload_main)
         additional=[im for im in pictures if im.id!=p.main_image_id]
         ready=all(p.upload_steps.get('image:'+im.id,{}).get('status')=='DONE' for im in additional)
         if additional and ready:

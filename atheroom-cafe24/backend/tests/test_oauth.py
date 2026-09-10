@@ -26,7 +26,9 @@ def test_state_is_bound_expiring_and_one_time(monkeypatch):
             response=client.get('/api/cafe24/connect',follow_redirects=False)
             assert response.status_code==307
             from urllib.parse import parse_qs,urlparse
-            state=parse_qs(urlparse(response.headers['location']).query)['state'][0]
+            query=parse_qs(urlparse(response.headers['location']).query)
+            state=query['state'][0]
+            assert set(query['scope'][0].split(',')) == {'mall.read_product','mall.write_product','mall.read_category','mall.read_store'}
             assert client.get('/api/cafe24/callback?state=wrong&error=denied').status_code==400
             # A legitimate cancellation consumes the state; repeat use is rejected.
             assert client.get('/api/cafe24/callback',params={'state':state,'error':'access_denied'},follow_redirects=False).status_code==307
