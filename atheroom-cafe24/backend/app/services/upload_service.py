@@ -6,6 +6,7 @@ from app.services.render_service import render
 from app.services.brief_description_service import brief_description
 from app.services import image_service
 from app.config import settings
+from app.services.option_service import ensure_options,option_errors
 
 class DemoCommerce:
     mall='demo'
@@ -14,6 +15,9 @@ class DemoCommerce:
     def create_product(self,payload): return {'product_no':int(payload['custom_product_code'][-6:],16)}
     def update_product(self,number,payload): return {'ok':True}
     def request(self,method,path,params=None,payload=None):
+        if path.endswith('/options'):
+            if method=='POST':self.option_data=payload['request']
+            return {'option':getattr(self,'option_data',{'has_option':'F','options':[]})}
         if path=='/products/setting': return {'setting':{'calculate_price_based_on':'A'}}
         if path=='/products/images': return {'images':[{'path':'https://demo.invalid/example.jpg'}]}
         if method=='POST' and path.endswith('/images'):
@@ -36,6 +40,8 @@ def publish_product(db,p,service=None,demo=False):
         except Exception as exc:
             checkpoint(db,p,key,'UNKNOWN' if getattr(exc,'ambiguous',False) else 'FAILED',message='이 단계를 마치지 못했습니다.'); failures.append(key); return None
     try:
+        errors=option_errors(p.option_settings)
+        if errors:raise RemoteFailure(' '.join(message for _,message in errors))
         if not p.cafe24_product_no:
             prior=p.upload_steps.get('create',{})
             code='ATR'+p.id.replace('-','')
@@ -56,6 +62,9 @@ def publish_product(db,p,service=None,demo=False):
                 else:
                     p.status='FAILED';p.message='등록 결과를 확인하지 못했습니다. 다시 확인 버튼으로 진행 상황을 확인해주세요.'; db.commit(); return
         number=p.cafe24_product_no
+        if p.option_settings.get('enabled'):
+            prior_status=p.upload_steps.get('options',{}).get('status')
+            step('options',lambda:ensure_options(service,number,p.option_settings,prior_status))
         for im in pictures:
             def upload(im=im):
                 response=service.request('POST','/products/images',payload={'requests':[{'image':image_service.encoded(im.storage_key)}]})
@@ -90,7 +99,7 @@ def publish_product(db,p,service=None,demo=False):
             rendered=render(p.template_snapshot,data(p),uploaded)
             step('description',lambda:service.update_product(number,{'description':rendered,'simple_description':brief_description(data(p)),'display':'F','selling':'F'}))
         step('seo',lambda:service.request('PUT',f'/products/{number}/seo',payload={'shop_no':settings.cafe24_shop_no,'request':{'meta_title':p.seo.get('title') or p.product_name,'meta_description':p.seo.get('description') or p.description,'meta_keywords':','.join(p.keywords),'meta_alt':p.product_name,'search_engine_exposure':'F'}}))
-        required=['create','main','description','seo']+(['additional'] if additional else [])+['image:'+i.id for i in pictures]
+        required=['create','main','description','seo']+(['options'] if p.option_settings.get('enabled') else [])+(['additional'] if additional else [])+['image:'+i.id for i in pictures]
         unfinished=[k for k in required if p.upload_steps.get(k,{}).get('status')!='DONE']
         p.status='PARTIAL_FAILED' if unfinished else 'UPLOADED'
         missing_images=sum(k.startswith('image:') for k in unfinished)

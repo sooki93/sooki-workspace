@@ -124,6 +124,7 @@ CREATE TABLE products (
 	description TEXT NOT NULL,
 	material TEXT NOT NULL,
 	size TEXT NOT NULL,
+	option_settings JSONB DEFAULT '{}' NOT NULL,
 	keywords JSONB NOT NULL,
 	seo JSONB NOT NULL,
 	ai_result JSONB NOT NULL,

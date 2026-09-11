@@ -41,7 +41,7 @@ async def validation_error(request, exc):
     issue=exc.errors()[0] if exc.errors() else {}
     location=issue.get('loc',())
     field=location[1] if len(location)>1 else ''
-    labels={'price':'판매가','supply_price':'공급가','product_name':'상품명','description':'상품 설명','material':'소재','size':'사이즈','cafe24_category_id':'쇼핑몰 카테고리','internal_product_group':'상품군','keywords':'검색 키워드'}
+    labels={'price':'판매가','supply_price':'공급가','product_name':'상품명','description':'상품 설명','material':'소재','size':'사이즈','cafe24_category_id':'쇼핑몰 카테고리','internal_product_group':'상품군','keywords':'검색 키워드','option_settings':'옵션 값'}
     if field in ('price','supply_price'):
         message=labels[field]+'를 확인해주세요. 0원 이상의 정수를 입력하고 금액이 너무 크지 않은지 확인해주세요.'
     elif field=='files': message='업로드할 사진을 선택해주세요.'

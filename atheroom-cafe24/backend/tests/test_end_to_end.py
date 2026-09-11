@@ -39,7 +39,10 @@ def test_complete_operator_flow(tmp_path,monkeypatch):
             assert p['price'] is None and p['material']==''
             payload={k:p[k] for k in ['revision','product_name','price','supply_price','internal_product_group','cafe24_category_id','description','material','size','keywords','main_image_id','reference_product_id']}
             payload.update({'product_name':'검증용 반지','price':28000,'supply_price':12000,'material':'사용자 확인 소재','size':'사용자 확인 사이즈','internal_product_group':'RING','cafe24_category_id':42,'seo_title':'반지','seo_description':'제품 설명'})
+            payload['option_settings']={'enabled':True,'color_values':'SILVER, GOLD','size_values':'FREE'}
             r=c.put('/api/products/'+id,json=payload);assert r.status_code==200,r.text;p=r.json()
+            assert p['option_settings']['color_values']=='silver, gold'
+            assert p['option_settings']['size_values']=='free'
             r=c.put(f'/api/products/{id}/images',json={'revision':p['revision'],'main_image_id':p['main_image_id'],'images':[{'id':i['id'],'image_type':'PRODUCT','confirmed':True} for i in p['images']]});assert r.status_code==200,r.text
             p=c.get('/api/products/'+id).json()
             assert not p['missing_fields']

@@ -8,7 +8,7 @@ from app.schemas.product import ProductEdit,Review
 router=APIRouter(prefix='/api/products')
 
 def serialize(db,p):
-    keys=('id','status','revision','reviewed_revision','product_name','price','supply_price','internal_product_group','cafe24_category_id','description','material','size','keywords','seo','ai_result','main_image_id','reference_product_id','template_profile_id','rendered_html','warnings','cafe24_product_no','upload_steps','message','created_at')
+    keys=('id','status','revision','reviewed_revision','product_name','price','supply_price','internal_product_group','cafe24_category_id','description','material','size','option_settings','keywords','seo','ai_result','main_image_id','reference_product_id','template_profile_id','rendered_html','warnings','cafe24_product_no','upload_steps','message','created_at')
     return {k:getattr(p,k) for k in keys}|{'warnings':current_warnings(db,p),'images':[image_dict(i) for i in images_for(db,p)],'missing_fields':missing(db,p),'review_issues':review_issues(db,p),'allowed_image_types':allowed_image_types(p),'main_photo_has_own_section':any(i['type']=='MAIN_CANDIDATE' for i in p.template_snapshot.get('images',[]))}
 @router.get('')
 def products(user=Depends(current_user),db=Depends(get_db)):
@@ -29,7 +29,9 @@ def edit(id:str,body:ProductEdit,user=Depends(current_user),db=Depends(get_db)):
         if value!=previous:
             if value: manual.add(key)
             else: manual.discard(key)
-    for key,value in body.model_dump(exclude={'revision','seo_title','seo_description'}).items(): setattr(p,key,value)
+    for key,value in body.model_dump(exclude={'revision','seo_title','seo_description'}).items():
+        if key=='option_settings' and key not in body.model_fields_set:continue
+        setattr(p,key,value)
     p.internal_product_group=body.internal_product_group.value
     p.seo={'title':body.seo_title,'description':body.seo_description}
     p.ai_result={**p.ai_result,'group_confirmed':True,'manual_fields':sorted(manual)}

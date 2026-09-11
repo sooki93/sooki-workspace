@@ -87,6 +87,7 @@ class Product(Base):
     description: Mapped[str] = mapped_column(Text, default='')
     material: Mapped[str] = mapped_column(Text, default='')
     size: Mapped[str] = mapped_column(Text, default='')
+    option_settings: Mapped[dict] = mapped_column(J, default=dict, server_default='{}')
     keywords: Mapped[list] = mapped_column(J, default=list)
     seo: Mapped[dict] = mapped_column(J, default=dict)
     ai_result: Mapped[dict] = mapped_column(J, default=dict)

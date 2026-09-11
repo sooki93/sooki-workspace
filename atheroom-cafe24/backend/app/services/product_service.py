@@ -8,6 +8,7 @@ from app.services.html_parser_service import compile_template
 from app.services.render_service import render,compare,image_pools
 from app.schemas.ai import ProductAnalysis
 from app.config import settings
+from app.services.option_service import option_errors
 
 LOCKED={'AI_GENERATING','UPLOADING','UPLOADED','PARTIAL_FAILED'}
 def owned(db,user_id,id,lock=False):
@@ -84,6 +85,7 @@ def review_issues(db,p):
         add('group_unconfirmed','선택한 상품군을 확인한 뒤 “이 상품군으로 확인하고 저장”을 눌러주세요.','field-group')
     if brand.rules.get('require_material') and not p.material.strip(): add('material','소재를 입력해주세요.','field-material')
     if brand.rules.get('require_size') and not p.size.strip(): add('size','사이즈를 입력해주세요.','field-size')
+    for key,message in option_errors(p.option_settings):add('option_'+key,message,'field-option-'+key)
     # Operator-authored copy is not a source of inferred facts or registration blockers.
     # Writing preferences guide AI generation; required facts use their dedicated fields.
     if not p.template_snapshot: add('template','사진을 올린 뒤 초안을 만들어 상품 형식을 적용해주세요.','product-photos')
