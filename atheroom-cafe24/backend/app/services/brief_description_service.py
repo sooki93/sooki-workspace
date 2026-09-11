@@ -1,6 +1,6 @@
 """Cafe24's separate brief description, using entered facts without rewriting copy."""
-import html
 import re
+from app.services.text_format_service import format_text
 
 SIZE_NOTICE='사이즈 측정 범위에 따라 오차 범위 내 차이가 있을 수 있습니다.'
 COLOR_NOTICE='모니터 해상도에 따라 컬러 차이가 있을 수 있습니다.'
@@ -30,4 +30,4 @@ def brief_description(data):
     size=facts.get('size') or data.get('size','')
     lines=['detail info',f'material {material}'.rstrip(),f'color {color}'.rstrip(),f'size {size}'.rstrip(),'',SIZE_NOTICE,COLOR_NOTICE]
     if is_silver_925(material): lines.append(SILVER_NOTICE)
-    return '<br>'.join(html.escape(line) for line in lines)
+    return '<div style="font-size:11px;line-height:1.8">'+format_text('\n'.join(lines))+'</div>'

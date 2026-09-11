@@ -2,20 +2,31 @@ import re, html, copy
 from collections import defaultdict, Counter
 from bs4 import BeautifulSoup
 from app.services.html_parser_service import sanitize, LABELS
+from app.services.text_format_service import format_text,FONT_SIZE
 
 OMITTED_DETAIL_ROLES={'MATERIAL','SIZE','SHIPPING','RETURNS'}
 
 def finish_layout(raw):
     soup=BeautifulSoup(raw,'html.parser')
-    for old in soup.select('.photo-spacing'): old.decompose()
+    for old in soup.select('.photo-spacing,.text-photo-spacing'): old.decompose()
     # Remove empty generated headings/containers after their text has been omitted.
     for node in reversed(soup.find_all(['p','h1','h2','h3','h4','h5','h6','section','div'])):
         if not node.get_text(strip=True) and not node.find(['img','br']): node.decompose()
+    def spacing(class_name):
+        gap=soup.new_tag('div',attrs={'class':class_name,'style':'height:96px;line-height:24px;font-size:11px;margin:0;padding:0'})
+        for _ in range(4):gap.append(soup.new_tag('br'))
+        return gap
+    for copy_node in soup.select('.operator-copy'):
+        block=copy_node.find_parent('p') or copy_node
+        if block.find_next('img'):
+            block['style']=block.get('style','').rstrip(';')+';margin-bottom:0;padding-bottom:0;'
+            block.insert_after(spacing('text-photo-spacing'))
     for photo in soup.find_all('img'):
         photo['style']=photo.get('style','').rstrip(';')+';display:block;margin:0 auto;'
-        gap=soup.new_tag('div',attrs={'class':'photo-spacing','style':'height:96px;line-height:24px;font-size:16px;margin:0;padding:0'})
-        for _ in range(4):gap.append(soup.new_tag('br'))
-        photo.insert_after(gap)
+        photo.insert_after(spacing('photo-spacing'))
+    for node in soup.find_all(True):
+        style=re.sub(r'(^|;)\s*font-size\s*:[^;]*','',node.get('style',''),flags=re.I)
+        node['style']=style.rstrip(';')+';font-size:'+FONT_SIZE+';'
     return sanitize(str(soup))
 
 LABEL={'NAME':'상품명','DESCRIPTION':'상품 설명','WEARING':'착용 사진','PRODUCT':'제품 사진','DETAIL':'제품 사진 · 디테일/클로즈업','SIZE_REFERENCE':'사이즈 이미지','SIZE':'사이즈 안내','MATERIAL':'소재 안내','NOTICE':'구매 안내','SHIPPING':'배송 안내','RETURNS':'교환/반품 안내','AS':'수리 안내','BRAND':'브랜드 안내','UNKNOWN':'확인 필요','ETC':'기타 이미지','MAIN_CANDIDATE':'메인 사진'}
@@ -75,7 +86,13 @@ def render(template,data,images,preview=False):
         replacements[slot['id']]=values.get(role,'') if role not in used else ''
         if preview and not replacements[slot['id']] and role not in used: replacements[slot['id']]=LABEL.get(role,'확인할 내용')+' 입력 영역'
         used.add(role)
-    result=re.sub(r'\{\{(t\d+)\}\}',lambda m:html.escape(str(replacements.get(m[1],''))).replace('\n','<br>'),result)
+    description_ids={s['id'] for s in template['slots'] if s['role']=='DESCRIPTION'}
+    def substitute(match):
+        value=replacements.get(match[1],'')
+        if match[1] in description_ids and value:
+            return '<span class="operator-copy">'+format_text(value)+'</span>'
+        return html.escape(str(value)).replace('\n','<br>')
+    result=re.sub(r'\{\{(t\d+)\}\}',substitute,result)
     return finish_layout(result)
 
 def compare(template,data,images):

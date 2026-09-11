@@ -49,5 +49,7 @@ def test_surplus_product_photo_stays_in_last_product_section():
 def test_policy_text_is_omitted_without_changing_operator_copy():
     copy='comment\n직접 쓴 설명\ndetail info\nmaterial 신주\nsize 60cm\n배송 안내는 추후 사진으로 넣겠습니다.'
     html=render(template(),{'main_image_id':'main','description':copy},photos())
-    assert BeautifulSoup(html,'html.parser').select_one('.product-information p').get_text('\n')==copy
+    paragraph=BeautifulSoup(html,'html.parser').select_one('.product-information p')
+    for br in paragraph.find_all('br'):br.replace_with('\n')
+    assert paragraph.get_text()==copy
     assert '체험용 배송 안내' not in html and '체험용 교환' not in html
