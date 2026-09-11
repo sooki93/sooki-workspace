@@ -5,6 +5,7 @@ import httpx
 from fastapi import FastAPI, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import select, delete
 from app.config import settings
@@ -27,7 +28,13 @@ async def lifespan(app):
 app=FastAPI(title='Attheroom Studio',lifespan=lifespan, docs_url='/docs' if settings.app_env == 'development' else None, redoc_url=None, openapi_url='/openapi.json' if settings.app_env == 'development' else None)
 @app.middleware('http')
 async def boundary(request, call_next):
-    if settings.bridge_token and not secrets.compare_digest(request.headers.get('x-studio-bridge',''),settings.bridge_token):
+    direct=False
+    if request.method=='POST' and request.url.path.startswith('/api/direct-upload/'):
+        from app.services.upload_ticket_service import verify
+        try:
+            verify(request.url.path.rsplit('/',1)[-1]);direct=True
+        except ValueError: pass
+    if settings.bridge_token and not direct and not secrets.compare_digest(request.headers.get('x-studio-bridge',''),settings.bridge_token):
         return JSONResponse({'detail':'접속 경로를 확인해주세요.'},403)
     if request.method not in ('GET','HEAD','OPTIONS') and request.headers.get('origin') != settings.frontend_origin:
         return JSONResponse({'detail':'접속 경로를 확인한 후 다시 시도해주세요.'},403)
@@ -117,3 +124,4 @@ app.include_router(products_router)
 app.include_router(settings_router)
 from app.api.publishing import router as publishing_router
 app.include_router(publishing_router)
+app.add_middleware(CORSMiddleware,allow_origins=[settings.frontend_origin],allow_methods=['POST'],allow_headers=['Content-Type'],allow_credentials=False)

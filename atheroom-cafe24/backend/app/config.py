@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # Cloud API reads the Mac heartbeat; it must never try to run a local CLI.
     execution_host: Literal['local', 'mac'] = 'local'
     bridge_token: str = ''
+    bridge_public_url_file: str = ''
     codex_binary: str = 'codex'
     codex_timeout_seconds: int = Field(default=300, ge=15, le=900)
     storage_backend: str = 'local'

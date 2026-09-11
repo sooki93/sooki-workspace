@@ -97,6 +97,7 @@ def main():
     env.update(config['env'])
     env.update(APP_ENV='mac', DEMO_MODE='false', AI_PROVIDER='codex', OPENAI_API_KEY='',
                STORAGE_BACKEND='local', EXECUTION_HOST='mac')
+    env['BRIDGE_PUBLIC_URL_FILE']=str(DATA / 'tunnel-url')
     port = str(config.get('port', 8031))
     api = launch([config['python'], '-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1',
                   '--port', port, '--no-access-log', '--no-proxy-headers'], env, 'api.log')

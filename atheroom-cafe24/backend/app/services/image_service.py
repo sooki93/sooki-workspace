@@ -15,6 +15,10 @@ def process_image(raw):
             im.load(); im=ImageOps.exif_transpose(im).convert('RGB')
             phash=str(imagehash.phash(im)); im.thumbnail((2400,2400))
             output=io.BytesIO(); im.save(output,format='JPEG',quality=90)
+            # Private previews still pass through Vercel. Keep converted media below
+            # its response limit while direct uploads retain the 5 MB input allowance.
+            if output.tell()>4*1024*1024:
+                output=io.BytesIO();im.save(output,format='JPEG',quality=80)
     except (UnidentifiedImageError,OSError,Image.DecompressionBombError) as exc: raise ValueError('사진 파일을 확인해주세요.') from exc
     return output.getvalue(),hashlib.sha256(raw).hexdigest(),phash
 
