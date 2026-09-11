@@ -17,7 +17,10 @@ def owned(db,user_id,id,lock=False):
     if not p: raise HTTPException(404,'상품을 찾을 수 없습니다.')
     return p
 def images_for(db,p): return list(db.scalars(select(ProductImage).where(ProductImage.product_id==p.id).order_by(ProductImage.sort_order)))
-def image_dict(i): return {k:getattr(i,k) for k in ('id','file_url','image_type','ai_confidence','confirmed','sort_order')}
+def image_dict(i):
+    # Copies/imports can retain an old file_url while receiving a new image ID.
+    # The private media endpoint looks up the current record, not its storage key.
+    return {k:getattr(i,k) for k in ('id','image_type','ai_confidence','confirmed','sort_order')} | {'file_url':f'/api/media/{i.id}'}
 def data(p): return {k:getattr(p,k) for k in ('product_name','description','material','size','main_image_id')}
 def editable(p,revision=None):
     if p.status in LOCKED or p.cafe24_product_no: raise HTTPException(409,'현재 상품은 수정할 수 없습니다. 진행 중인 작업을 확인해주세요.')
