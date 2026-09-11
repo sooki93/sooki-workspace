@@ -7,6 +7,7 @@ from app.services.brief_description_service import brief_description
 from app.services import image_service
 from app.config import settings
 from app.services.option_service import ensure_options,option_errors
+from app.services.inventory_service import disable_inventory
 
 class DemoCommerce:
     mall='demo'
@@ -15,6 +16,7 @@ class DemoCommerce:
     def create_product(self,payload): return {'product_no':int(payload['custom_product_code'][-6:],16)}
     def update_product(self,number,payload): return {'ok':True}
     def request(self,method,path,params=None,payload=None):
+        if path.endswith('/variants'):return {'variants':[{'variant_code':'DEMO00000001','use_inventory':'F'}]}
         if path.endswith('/options'):
             if method=='POST':self.option_data=payload['request']
             return {'option':getattr(self,'option_data',{'has_option':'F','options':[]})}
@@ -70,6 +72,7 @@ def publish_product(db,p,service=None,demo=False):
         if p.option_settings.get('enabled'):
             prior_status=p.upload_steps.get('options',{}).get('status')
             step('options',lambda:ensure_options(service,number,p.option_settings,prior_status))
+        step('inventory',lambda:disable_inventory(service,number),dependencies=not p.option_settings.get('enabled') or p.upload_steps.get('options',{}).get('status')=='DONE')
         for im in pictures:
             def upload(im=im):
                 response=service.request('POST','/products/images',payload={'requests':[{'image':image_service.encoded(im.storage_key)}]})
@@ -104,7 +107,7 @@ def publish_product(db,p,service=None,demo=False):
             rendered=render(p.template_snapshot,data(p),uploaded)
             step('description',lambda:service.update_product(number,{'description':rendered,'simple_description':brief_description(data(p)),'display':'F','selling':'F'}))
         step('seo',lambda:service.request('PUT',f'/products/{number}/seo',payload={'shop_no':settings.cafe24_shop_no,'request':{'meta_title':p.seo.get('title') or p.product_name,'meta_description':p.seo.get('description') or p.description,'meta_keywords':','.join(p.keywords),'meta_alt':p.product_name,'search_engine_exposure':'F'}}))
-        required=['create','main','description','seo']+(['options'] if p.option_settings.get('enabled') else [])+(['additional'] if additional else [])+['image:'+i.id for i in pictures]
+        required=['create','main','description','seo','inventory']+(['options'] if p.option_settings.get('enabled') else [])+(['additional'] if additional else [])+['image:'+i.id for i in pictures]
         unfinished=[k for k in required if p.upload_steps.get(k,{}).get('status')!='DONE']
         p.status='PARTIAL_FAILED' if unfinished else 'UPLOADED'
         missing_images=sum(k.startswith('image:') for k in unfinished)

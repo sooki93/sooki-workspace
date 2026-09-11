@@ -22,6 +22,7 @@ def test_publishing_matches_cafe24_http_contract(monkeypatch):
         if request.method=='GET':
             assert request.url.params['shop_no']=='1'
             data={'setting':{'calculate_price_based_on':'A'}} if request.url.path.endswith('/setting') else {'products':[]}
+            if request.url.path.endswith('/variants'):data={'variants':[{'variant_code':'P00000000001','use_inventory':'F'}]}
         else:
             assert not request.url.query, 'Cafe24 rejects query strings on POST and PUT'
             body=json.loads(request.content)
