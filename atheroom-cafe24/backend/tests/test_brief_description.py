@@ -24,8 +24,8 @@ def test_colour_and_unconfirmed_or_plated_material_do_not_trigger_silver_notice(
 
 def test_does_not_extract_facts_from_comment_or_invent_missing_values():
     result=brief_description({'material':'신주','size':'3cm','description':'comment\ncolor gold\nmaterial 925실버'})
-    assert 'material</strong> 신주<br>color<br>size 3cm' in result
+    assert 'material 신주<br>color<br>size 3cm' in result
     assert SILVER_NOTICE not in result
 
 def test_entered_values_are_escaped():
-    assert 'material</strong> &lt;script&gt;' in brief_description({'material':'<script>'})
+    assert 'material &lt;script&gt;' in brief_description({'material':'<script>'})
