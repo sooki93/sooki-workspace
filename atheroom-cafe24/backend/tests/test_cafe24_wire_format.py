@@ -62,3 +62,22 @@ def test_success_status_with_empty_main_image_is_not_complete(monkeypatch):
         publish_product(db,p,service)
         assert p.status=='PARTIAL_FAILED'
         assert p.upload_steps['main']['status']=='FAILED'
+
+
+def test_additional_gallery_is_main_then_first_wearing_without_losing_detail_photos(monkeypatch):
+    from app.models import ProductImage
+    from test_phase6 import Recording
+    monkeypatch.setattr('app.services.image_service.encoded',lambda key:key)
+    engine=create_engine('sqlite://');Base.metadata.create_all(engine)
+    with Session(engine,expire_on_commit=False) as db:
+        p=fixture(db)
+        for order,role in enumerate(['PRODUCT','WEARING','DETAIL','WEARING'],1):
+            db.add(ProductImage(product_id=p.id,file_url='/photo',storage_key=f'photo{order}',file_hash=str(order),perceptual_hash='0'*16,sort_order=order,image_type=role))
+        db.commit()
+        service=Recording();service.fail=False
+        publish_product(db,p,service)
+        gallery=next(payload for path,payload in service.calls if path=='/products/123/additionalimages')
+        assert gallery['request']['additional_image']==['test','photo2']
+        assert len([path for path,_ in service.calls if path=='/products/images'])==5
+        assert p.upload_steps['description']['status']=='DONE'
+        assert p.status=='UPLOADED'

@@ -27,6 +27,11 @@ class DemoCommerce:
 def checkpoint(db,p,key,status,**extra):
     p.upload_steps={**p.upload_steps,key:{'status':status,**extra}}; db.commit()
 
+def additional_images(p,pictures):
+    main=next((im for im in pictures if im.id==p.main_image_id),None)
+    wearing=next((im for im in sorted(pictures,key=lambda im:im.sort_order) if im.id!=p.main_image_id and im.image_type=='WEARING'),None)
+    return [im for im in (main,wearing) if im is not None]
+
 def publish_product(db,p,service=None,demo=False):
     service=service or (DemoCommerce() if demo else Cafe24Service(db,p.user_id))
     pictures=images_for(db,p); failures=[]
@@ -82,7 +87,7 @@ def publish_product(db,p,service=None,demo=False):
                     raise RemoteFailure('대표 사진이 저장되지 않았습니다. 다시 등록해주세요.')
                 return response
             step('main',upload_main)
-        additional=[im for im in pictures if im.id!=p.main_image_id]
+        additional=additional_images(p,pictures)
         ready=all(p.upload_steps.get('image:'+im.id,{}).get('status')=='DONE' for im in additional)
         if additional and ready:
             # Replacement PUT avoids duplicate appends after a lost response. This is one retryable assignment step.
