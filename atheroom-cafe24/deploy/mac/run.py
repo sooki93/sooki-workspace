@@ -44,7 +44,7 @@ def vc(config, endpoint, body=None):
     input_path = DATA / 'vercel-request.json'
     if body is not None:
         input_path.write_text(json.dumps(body))
-        args += ['-X', 'POST', '--input', str(input_path)]
+        args += ['-X', 'POST', '--header', 'Content-Type: application/json', '--input', str(input_path)]
     try:
         result = subprocess.run(args, cwd=DATA, capture_output=True, text=True, timeout=120)
         if result.returncode:
@@ -57,10 +57,11 @@ def vc(config, endpoint, body=None):
 
 def connect_vercel(config, url):
     print('온라인 작업실에 맥북 연결을 반영하고 있습니다. 잠시 기다려주세요.', flush=True)
-    vc(config, f"/v10/projects/{config['project_id']}/env?upsert=true", [
+    for variable in [
         {'key': 'BACKEND_URL', 'value': url, 'type': 'encrypted', 'target': ['production']},
         {'key': 'STUDIO_BRIDGE_TOKEN', 'value': config['env']['BRIDGE_TOKEN'],
-         'type': 'encrypted', 'target': ['production']}])
+         'type': 'encrypted', 'target': ['production']}]:
+        vc(config, f"/v10/projects/{config['project_id']}/env?upsert=true", variable)
     deployment = vc(config, '/v13/deployments', {
         'name': 'atheroom-cafe24', 'project': config['project_id'], 'target': 'production',
         'gitSource': {'type': 'github', 'repoId': config['repo_id'], 'ref': 'main'}})
