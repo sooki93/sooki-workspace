@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     openai_model: str = 'gpt-4.1'
     ai_provider: Literal['codex', 'openai'] = 'codex'
     demo_ai_enabled: bool = False
+    # Cloud API reads the Mac heartbeat; it must never try to run a local CLI.
+    execution_host: Literal['local', 'mac'] = 'local'
+    bridge_token: str = ''
     codex_binary: str = 'codex'
     codex_timeout_seconds: int = Field(default=300, ge=15, le=900)
     storage_backend: str = 'local'
@@ -44,6 +47,13 @@ class Settings(BaseSettings):
         return value
 
     def validate_runtime(self):
+        if self.app_env == 'mac':
+            if self.demo_mode or self.storage_backend != 'local' or not self.database_url.startswith('sqlite:'):
+                raise RuntimeError('Mac hosting requires a separate live SQLite database and local storage')
+            if not self.operator_password_hash or not self.token_encryption_key or len(self.bridge_token) < 32:
+                raise RuntimeError('Mac hosting credentials not provisioned')
+            if not self.frontend_origin.startswith('https://') or self.ai_provider != 'codex' or self.openai_api_key:
+                raise RuntimeError('Mac hosting requires HTTPS and subscription-only Codex')
         if self.app_env == 'production':
             if self.demo_mode or not self.database_url.startswith('postgresql'):
                 raise RuntimeError('Production requires PostgreSQL and DEMO_MODE=false')

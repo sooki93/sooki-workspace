@@ -1,5 +1,5 @@
 """Durable single-consumer worker. PostgreSQL advisory lock prevents competing workers."""
-import time,logging,signal,fcntl
+import time,logging,signal,fcntl,threading
 from sqlalchemy import select,text
 from app.db import SessionLocal,engine
 from app.models import Job,Product,Cafe24Account,now
@@ -10,6 +10,18 @@ from app.services.duplicate_service import sync_catalogue,duplicates
 from app.config import settings
 from app.services.ai_errors import AIUsageLimit, AIConnectionRequired
 stop=False
+
+def heartbeat_loop(done):
+    from app.services.codex_service import connection_status
+    from app.services.worker_status_service import record_heartbeat
+    while not done.is_set():
+        try:
+            status=connection_status() if settings.ai_provider=='codex' else {'ready':False,'message':'구독 방식 설정을 확인해주세요.'}
+            with SessionLocal() as db:
+                record_heartbeat(db,online=True,ai_ready=status['ready'],message=status['message'])
+        except Exception as exc:
+            logging.warning('heartbeat_failed type=%s',type(exc).__name__)
+        done.wait(10)
 
 def execute(db,job):
     account=db.scalar(select(Cafe24Account).where(Cafe24Account.user_id==job.user_id))
@@ -71,7 +83,25 @@ def main():
         global stop
         stop=True
     signal.signal(signal.SIGTERM,halt);signal.signal(signal.SIGINT,halt)
-    while not stop:
-        if not run_once(): time.sleep(1)
-    guard.close()
+    done=threading.Event()
+    heartbeat=None
+    if settings.execution_host=='mac':
+        heartbeat=threading.Thread(target=heartbeat_loop,args=(done,),daemon=True)
+        heartbeat.start()
+    try:
+        while not stop:
+            if engine.dialect.name=='postgresql':
+                # Do not silently reconnect this connection: it owns the worker lock.
+                if guard.invalidated: raise RuntimeError('Worker lock connection lost')
+                guard.execute(text('SELECT 1'))
+            if not run_once(): time.sleep(1)
+    finally:
+        done.set()
+        if heartbeat:
+            heartbeat.join(timeout=20)
+            try:
+                from app.services.worker_status_service import record_heartbeat
+                with SessionLocal() as db: record_heartbeat(db,online=False)
+            except Exception: pass
+        guard.close()
 if __name__=='__main__': main()

@@ -24,9 +24,11 @@ async def lifespan(app):
             db.add(BrandSettings(user_id=user.id, rules={'require_material':True,'require_size':True,'priority':'admin','forbidden':['은은한','자연스럽게 어우러지는','실루엣','세련된 무드','단정한 무드','포인트가 되어','데일리하게','잔잔한','유연하게','룩의 완성도','자연스럽게 아울린다']}))
         db.commit()
     yield
-app=FastAPI(title='Attheroom Studio',lifespan=lifespan, docs_url='/docs' if settings.app_env != 'production' else None, redoc_url=None)
+app=FastAPI(title='Attheroom Studio',lifespan=lifespan, docs_url='/docs' if settings.app_env == 'development' else None, redoc_url=None, openapi_url='/openapi.json' if settings.app_env == 'development' else None)
 @app.middleware('http')
 async def boundary(request, call_next):
+    if settings.bridge_token and not secrets.compare_digest(request.headers.get('x-studio-bridge',''),settings.bridge_token):
+        return JSONResponse({'detail':'접속 경로를 확인해주세요.'},403)
     if request.method not in ('GET','HEAD','OPTIONS') and request.headers.get('origin') != settings.frontend_origin:
         return JSONResponse({'detail':'접속 경로를 확인한 후 다시 시도해주세요.'},403)
     r=await call_next(request)
@@ -68,7 +70,7 @@ def login(body:Login, request:Request, response:Response, db=Depends(get_db)):
     user=db.scalar(select(User).where(User.email==settings.operator_email))
     token=secrets.token_urlsafe(32)
     db.add(LoginSession(id=digest(token),user_id=user.id,expires_at=datetime.now(timezone.utc)+timedelta(hours=12))); db.commit()
-    response.set_cookie('studio_session',token,httponly=True,secure=settings.app_env=='production',samesite='lax',max_age=43200)
+    response.set_cookie('studio_session',token,httponly=True,secure=settings.app_env in ('production','mac'),samesite='lax',max_age=43200)
     return {'ok':True}
 @app.delete('/api/session')
 def logout(request:Request,response:Response,db=Depends(get_db)):

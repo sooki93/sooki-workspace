@@ -130,3 +130,11 @@ class Job(Base):
     message: Mapped[str] = mapped_column(Text, default='')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+class WorkerState(Base):
+    __tablename__ = 'worker_state'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    online: Mapped[bool] = mapped_column(Boolean, default=False)
+    ai_ready: Mapped[bool] = mapped_column(Boolean, default=False)
+    message: Mapped[str] = mapped_column(Text, default='')
