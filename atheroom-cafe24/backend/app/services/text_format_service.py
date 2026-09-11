@@ -1,4 +1,4 @@
-"""Shared product-copy typography for detail and brief descriptions."""
+"""HTML typography for the product detail page (not the plain-text brief)."""
 import html
 import re
 

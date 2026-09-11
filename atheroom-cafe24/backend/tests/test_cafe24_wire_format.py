@@ -1,6 +1,7 @@
 """Regressions found against Cafe24's real Admin API, without live writes."""
 import json
 import httpx
+from bs4 import BeautifulSoup
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from app.config import settings
@@ -12,6 +13,7 @@ from test_phase6 import fixture
 
 
 def test_publishing_matches_cafe24_http_contract(monkeypatch):
+    detail_copy='detail info\nmaterial 신주, 무니켈도금\ncolor silver & gold\nsize 약 60cm  \n\n모니터 해상도에 따라 컬러 차이가 있을 수 있습니다.\n'
     monkeypatch.setattr(settings,'demo_mode',False)
     monkeypatch.setattr(Cafe24Service,'token',lambda self,force=False:'test-token')
     monkeypatch.setattr('app.services.cafe24_service.time.sleep',lambda _:None)
@@ -37,13 +39,16 @@ def test_publishing_matches_cafe24_http_contract(monkeypatch):
                 data={'product':{'product_no':123}}
             else:
                 if request.url.path.endswith('/products/123'):
-                    assert '>detail info</strong><br>' in body['request']['simple_description']
-                    assert '모니터 해상도에 따라 컬러 차이가 있을 수 있습니다.' in body['request']['simple_description']
+                    assert body['request']['simple_description']==detail_copy
+                    detail_html=BeautifulSoup(body['request']['description'],'html.parser')
+                    assert {'comment','detail info'} <= {n.get_text() for n in detail_html.find_all('strong')}
+                    assert all('font-size:11px' in n.get('style','') for n in detail_html.find_all('strong'))
                 data={'ok':True}
         return httpx.Response(201 if request.method=='POST' else 200,json=data)
     engine=create_engine('sqlite://');Base.metadata.create_all(engine)
     with Session(engine,expire_on_commit=False) as db:
-        p=fixture(db);db.add(Cafe24Account(user_id=p.user_id,mall_id='testmall',demo=False));db.commit()
+        p=fixture(db);p.description='comment\n직접 입력한 상품 설명\n'+detail_copy
+        db.add(Cafe24Account(user_id=p.user_id,mall_id='testmall',demo=False));db.commit()
         service=Cafe24Service(db,p.user_id,client=httpx.Client(transport=httpx.MockTransport(handle)))
         publish_product(db,p,service)
         assert p.status=='UPLOADED'
