@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>헬로뽀숑 OUR HOME</title>
+<!-- 홈페이지에 이미 SUIT · Aboreto 서체가 있으면 아래 두 줄은 빼도 됩니다 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/static/woff2/SUIT.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aboreto&display=swap">
+<style>
+/* =====================================================================
+   헬로뽀숑 OUR HOME · QR 각인 상세페이지 (가로 860px)
+
+   [수정 가이드]
+   1. 색상 바꾸기   → 바로 아래 "색상 설정"의 값만 바꾸면 페이지 전체에 반영돼요.
+   2. 시안 링크     → 본문에서 "시안 미리보기 링크" 주석을 찾아 href를 바꿔요.
+   3. 사진 넣기     → class="hp-ph" 상자를 <img class="hp-img" src="사진주소" alt="설명"> 로 바꿔요.
+                      (상자에 적힌 style="aspect-ratio:…" 를 img에도 그대로 붙이면 비율이 유지돼요)
+   4. 확정 전 내용  → class="hp-tbd" 로 표시된 곳을 찾아 실제 내용으로 바꿔요.
+   ===================================================================== */
+
+.hpqr {
+  /* ───────── 색상 설정 ───────── */
+  --hp-bg:        #EFEEE9;  /* 기본 바탕 (홈페이지 바탕색) */
+  --hp-paper:     #F8F7F3;  /* 밝은 카드 · 밝은 섹션 바탕 */
+  --hp-sand:      #E3DFD5;  /* 구분 섹션 바탕 · 사진 자리 */
+  --hp-ink:       #2F2E29;  /* 제목 · 본문 글자 */
+  --hp-sub:       #6B675C;  /* 보조 글자 */
+  --hp-mute:      #9E998C;  /* 라벨 · 연한 글자 */
+  --hp-line:      #D3CEC2;  /* 선 · 테두리 */
+  --hp-point:     #A8884C;  /* 포인트 색 (숫자 · 강조 선) */
+  --hp-deep:      #2F2E29;  /* 어두운 섹션 바탕 */
+  --hp-deep-ink:  #EFEEE9;  /* 어두운 섹션 글자 */
+  --hp-deep-sub:  #A9A499;  /* 어두운 섹션 보조 글자 */
+  --hp-deep-line: #4A4840;  /* 어두운 섹션 선 */
+  /* ───────── 간격 설정 ───────── */
+  --hp-gallery-gap: 8px;    /* 갤러리 사진 사이 간격 (4px 이상 권장) */
+  /* ───────── 서체 설정 ───────── */
+  --hp-font:      'SUIT', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --hp-font-en:   'Aboreto', 'SUIT', serif;
+}
+
+/* ─── 기본 ─── */
+.hpqr, .hpqr * { box-sizing: border-box; }
+.hpqr {
+  width: 100%; max-width: 860px; margin: 0 auto;
+  background: var(--hp-bg); color: var(--hp-ink);
+  font-family: var(--hp-font); font-size: 16px; line-height: 1.75;
+  letter-spacing: -0.02em; word-break: keep-all; overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+}
+.hpqr :where(h1, h2, h3, h4, p, ul, ol, dl, dd, figure) { margin: 0; padding: 0; }
+.hpqr :where(ul, ol) { list-style: none; }
+.hpqr :where(img) { display: block; max-width: 100%; }
+.hpqr :where(a) { color: inherit; }
+
+.hp-sec { padding: 120px 72px; }
+.hp-sec.is-paper { background: var(--hp-paper); }
+.hp-sec.is-sand { background: var(--hp-sand); }
+.hp-sec.is-deep { background: var(--hp-deep); color: var(--hp-deep-ink); }
+.hp-center { text-align: center; }
+
+/* ─── 글자 ─── */
+.hp-eyebrow {
+  display: block; font-family: var(--hp-font-en); font-size: 13px;
+  letter-spacing: 0.22em; color: var(--hp-mute); margin-bottom: 20px;
+}
+.is-deep .hp-eyebrow { color: var(--hp-deep-sub); }
+.hp-title { font-size: 34px; line-height: 1.42; font-weight: 600; letter-spacing: -0.035em; }
+.hp-lead { margin-top: 22px; font-size: 17px; line-height: 1.8; color: var(--hp-sub); }
+.is-deep .hp-lead { color: var(--hp-deep-sub); }
+.hp-center .hp-lead { max-width: 620px; margin-left: auto; margin-right: auto; }
+.hp-note { font-size: 13px; color: var(--hp-mute); line-height: 1.6; }
+.is-deep .hp-note { color: var(--hp-deep-sub); }
+
+/* 확정 전 내용 표시 */
+.hp-tbd { border-bottom: 1px dashed var(--hp-point); padding: 0 2px; }
+
+/* ─── 사진 자리 ─── */
+.hp-ph {
+  width: 100%; background: var(--hp-sand); border: 1px dashed var(--hp-line);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 20px; color: var(--hp-mute); font-size: 13px; line-height: 1.55;
+}
+.is-sand .hp-ph { background: var(--hp-bg); }
+.is-deep .hp-ph { background: #3A3933; border-color: var(--hp-deep-line); color: var(--hp-deep-sub); }
+.hp-ph b { display: block; font-family: var(--hp-font-en); font-weight: 400; letter-spacing: 0.2em; font-size: 11px; margin-bottom: 6px; }
+.hp-img { width: 100%; height: auto; object-fit: cover; }
+
+/* 휴대폰 화면 자리 */
+.hp-phone {
+  width: 100%; max-width: 250px; margin: 0 auto; padding: 10px;
+  background: var(--hp-ink); border-radius: 38px;
+}
+.hp-phone .hp-ph, .hp-phone .hp-img { aspect-ratio: 390 / 760; border-radius: 29px; border: 0; }
+
+/* ─── 01 메인 사진 + 브랜드 소개 ─── */
+.hp-main-photo .hp-ph { border: 0; }
+.hp-intro { padding: 110px 72px 130px; text-align: center; }
+.hp-intro .hp-eyebrow { margin-bottom: 26px; }
+.hp-intro h1 { font-size: 34px; line-height: 1.45; font-weight: 500; letter-spacing: -0.035em; }
+.hp-intro h1 .en { display: block; margin-top: 8px; font-family: var(--hp-font-en); font-weight: 400; font-size: 46px; letter-spacing: 0.08em; }
+.hp-intro-sub { margin-top: 18px; font-size: 15px; color: var(--hp-mute); letter-spacing: 0.02em; }
+.hp-intro-rule { width: 1px; height: 56px; background: var(--hp-point); margin: 48px auto; border: 0; }
+.hp-intro-body p { font-size: 17px; line-height: 2; color: var(--hp-sub); }
+.hp-intro-body p + p { margin-top: 30px; }
+.hp-intro-body strong { font-weight: 600; color: var(--hp-ink); }
+
+/* ─── 02 QR 각인 모델 출시 ─── */
+.hp-launch .hp-new {
+  display: inline-block; font-family: var(--hp-font-en); font-size: 12px; letter-spacing: 0.2em;
+  border: 1px solid var(--hp-ink); padding: 5px 12px 4px; margin-bottom: 24px;
+}
+.hp-launch .hp-title { font-size: 40px; }
+.hp-launch-head { margin-top: 26px; font-size: 21px; font-weight: 600; }
+.hp-launch-body { margin-top: 26px; }
+.hp-launch-body p { font-size: 17px; line-height: 1.9; color: var(--hp-sub); }
+.hp-launch-body p + p { margin-top: 20px; }
+.hp-launch-tags { display: flex; justify-content: center; gap: 10px; margin-top: 40px; }
+.hp-launch-tags span { font-size: 14px; color: var(--hp-sub); padding: 8px 18px; border: 1px solid var(--hp-line); border-radius: 999px; background: var(--hp-bg); }
+
+/* ─── 03 특허 ─── */
+.hp-patent { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+.hp-seal { width: 132px; height: 132px; margin-bottom: 32px; color: var(--hp-point); }
+.hp-patent-no { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--hp-line); font-size: 14px; color: var(--hp-sub); }
+.hp-patent-no strong { display: block; font-size: 13px; font-weight: 500; color: var(--hp-mute); margin-bottom: 4px; }
+.hp-warn { margin-top: 18px; font-size: 14px; font-weight: 600; }
+
+/* ─── 05 각인 선택 ─── */
+.hp-types { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 56px; }
+.hp-type { background: var(--hp-paper); padding: 40px 36px; }
+.hp-type-head { font-family: var(--hp-font-en); font-size: 13px; letter-spacing: 0.2em; color: var(--hp-point); }
+.hp-type h3 { margin-top: 6px; font-size: 26px; font-weight: 600; }
+.hp-type-art { margin: 28px 0; height: 190px; background: var(--hp-bg); display: flex; align-items: center; justify-content: center; }
+.hp-tag {
+  width: 150px; height: 150px; border-radius: 50%; border: 1.5px solid var(--hp-ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: var(--hp-paper);
+}
+.hp-tag .t-name { font-size: 17px; font-weight: 600; letter-spacing: 0.08em; }
+.hp-tag .t-phone { font-size: 11.5px; letter-spacing: 0.02em; color: var(--hp-sub); }
+.hp-tag svg { width: 62px; height: 62px; color: var(--hp-ink); }
+.hp-tag .t-ars { font-size: 10.5px; letter-spacing: 0.02em; color: var(--hp-sub); line-height: 1.35; text-align: center; }
+.hp-type-lead { font-size: 18px; font-weight: 600; line-height: 1.5; padding-bottom: 16px; border-bottom: 1px solid var(--hp-line); }
+.hp-type-desc { margin-top: 16px; font-size: 15px; color: var(--hp-sub); line-height: 1.75; }
+
+/* ─── 06 시안 미리보기 CTA ─── */
+.hp-cta { padding: 120px 72px; text-align: center; background: var(--hp-deep); color: var(--hp-deep-ink); }
+.hp-cta .hp-eyebrow { color: var(--hp-point); }
+.hp-cta .hp-title { font-size: 36px; }
+.hp-cta-steps { margin: 52px auto 0; max-width: 620px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--hp-deep-line); border-bottom: 1px solid var(--hp-deep-line); }
+.hp-cta-steps li { padding: 22px 6px; font-size: 14.5px; }
+.hp-cta-steps li + li { border-left: 1px solid var(--hp-deep-line); }
+.hp-cta-steps small { display: block; font-family: var(--hp-font-en); font-size: 12px; color: var(--hp-point); letter-spacing: 0.1em; margin-bottom: 2px; }
+.hp-btn {
+  display: inline-flex; align-items: center; gap: 14px; margin-top: 52px;
+  background: var(--hp-deep-ink); color: var(--hp-deep) !important; text-decoration: none;
+  font-size: 18px; font-weight: 600; letter-spacing: -0.02em; padding: 22px 44px; border-radius: 999px;
+  transition: background .2s ease;
+}
+.hp-btn:hover { background: #FFFFFF; }
+.hp-btn svg { width: 18px; height: 18px; }
+.hp-cta .hp-note { margin-top: 18px; }
+
+/* ─── 08 6가지 안심 ─── */
+.hp-big6 { font-family: var(--hp-font-en); font-weight: 400; font-size: 1.35em; line-height: 1; color: var(--hp-point); margin-right: 2px; }
+.hp-grid6 { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 56px; border-top: 1px solid var(--hp-line); border-left: 1px solid var(--hp-line); }
+.hp-grid6 li { padding: 34px 26px 32px; border-right: 1px solid var(--hp-line); border-bottom: 1px solid var(--hp-line); }
+.hp-grid6 svg { width: 34px; height: 34px; color: var(--hp-point); }
+.hp-grid6 .hp-num { display: block; margin-top: 22px; font-family: var(--hp-font-en); font-size: 12px; letter-spacing: 0.14em; color: var(--hp-mute); }
+.hp-grid6 h3 { margin-top: 4px; font-size: 18px; font-weight: 600; line-height: 1.45; }
+.hp-grid6 p { margin-top: 6px; font-size: 14px; color: var(--hp-sub); line-height: 1.6; }
+.is-deep .hp-grid6, .is-deep .hp-grid6 li { border-color: var(--hp-deep-line); }
+.is-deep .hp-grid6 .hp-num, .is-deep .hp-grid6 p { color: var(--hp-deep-sub); }
+
+/* ─── 10 보호자 2명 ─── */
+.hp-flow { margin-top: 56px; display: grid; grid-template-columns: 1fr 40px 1fr 40px 1fr; align-items: center; }
+.hp-flow-node { background: var(--hp-bg); padding: 30px 16px 28px; text-align: center; }
+.hp-flow-node small { display: block; font-family: var(--hp-font-en); font-size: 11px; letter-spacing: 0.18em; color: var(--hp-mute); }
+.hp-flow-node strong { display: block; margin-top: 8px; font-size: 19px; font-weight: 600; }
+.hp-flow-node span { display: block; margin-top: 4px; font-size: 13.5px; color: var(--hp-sub); }
+.hp-flow-node.is-dim strong { color: var(--hp-sub); }
+.hp-flow-node.is-on { background: var(--hp-ink); color: var(--hp-bg); }
+.hp-flow-node.is-on small, .hp-flow-node.is-on span { color: var(--hp-deep-sub); }
+.hp-flow-arrow { display: flex; align-items: center; justify-content: center; color: var(--hp-mute); }
+.hp-flow-arrow svg { width: 16px; height: 16px; }
+.hp-checks { margin-top: 36px; display: flex; gap: 40px; }
+.hp-checks li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.55; }
+.hp-checks svg { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--hp-point); }
+
+/* ─── 11 QR · ARS 이중 연결 ─── */
+.hp-merge { margin-top: 40px; background: var(--hp-deep-ink); color: var(--hp-deep); text-align: center; padding: 24px 20px; font-size: 17px; font-weight: 600; }
+.hp-merge span { display: block; font-size: 14px; font-weight: 400; color: var(--hp-sub); margin-top: 2px; }
+.hp-engrave { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 44px; align-items: center; }
+.hp-engrave-art { background: #3A3933; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; }
+.hp-engrave-art .hp-tag { width: 250px; height: 250px; gap: 10px; background: var(--hp-deep-ink); border-color: var(--hp-deep-ink); color: var(--hp-deep); }
+.hp-engrave-art .hp-tag svg { width: 104px; height: 104px; color: var(--hp-deep); }
+.hp-engrave-art .t-ars { font-size: 15px; color: var(--hp-deep); font-weight: 600; letter-spacing: 0.04em; }
+.hp-engrave-art .t-ars em { font-style: normal; font-weight: 400; color: var(--hp-sub); margin-right: 6px; font-size: 12px; }
+.hp-legend li { display: grid; grid-template-columns: 34px 1fr; padding: 18px 0; border-bottom: 1px solid var(--hp-deep-line); }
+.hp-legend li:first-child { border-top: 1px solid var(--hp-deep-line); }
+.hp-legend .hp-num { font-family: var(--hp-font-en); font-size: 13px; color: var(--hp-point); padding-top: 3px; }
+.hp-legend strong { display: block; font-size: 17px; font-weight: 600; }
+.hp-legend span { display: block; margin-top: 2px; font-size: 14px; color: var(--hp-deep-sub); line-height: 1.6; }
+
+/* ─── 07 제품 이미지 갤러리 (모든 사진 4:5 · 크게 2장 + 작게 2장 반복) ─── */
+.hp-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--hp-gallery-gap); padding: var(--hp-gallery-gap) 0; background: var(--hp-bg); }
+.hp-g-item { margin: 0; }
+.hp-g-item:nth-child(4n+1), .hp-g-item:nth-child(4n+2) { grid-column: 1 / -1; }
+.hp-g-item > .hp-ph, .hp-g-item > img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border: 0; }
+.hp-g-item > img { display: block; }
+
+/* ─── 12 알림 ─── */
+.hp-notify { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; align-items: center; margin-top: 56px; }
+.hp-bubbles { display: grid; gap: 12px; }
+.hp-bubble { background: var(--hp-paper); border-radius: 18px; padding: 18px 20px; display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: center; box-shadow: 0 1px 0 var(--hp-line); }
+.hp-bubble i { width: 40px; height: 40px; border-radius: 11px; background: var(--hp-ink); color: var(--hp-bg); display: flex; align-items: center; justify-content: center; font-style: normal; font-family: var(--hp-font-en); font-size: 15px; }
+.hp-bubble small { display: flex; justify-content: space-between; font-size: 12px; color: var(--hp-mute); }
+.hp-bubble strong { display: block; font-size: 15px; font-weight: 600; margin-top: 1px; }
+.hp-bubble span { display: block; font-size: 13.5px; color: var(--hp-sub); }
+
+/* ─── 12 앱 관리 ─── */
+.hp-appgrid { margin-top: 56px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.hp-appgrid li { background: var(--hp-paper); padding: 30px 26px 30px; }
+.hp-appgrid svg { width: 30px; height: 30px; color: var(--hp-point); }
+.hp-appgrid h3 { margin-top: 20px; font-size: 17px; font-weight: 600; line-height: 1.45; }
+.hp-appgrid p { margin-top: 4px; font-size: 14px; color: var(--hp-sub); line-height: 1.6; }
+
+/* ─── 11 FAQ ─── */
+.hp-sub-title { font-size: 22px; font-weight: 600; margin-top: 80px; padding-bottom: 18px; border-bottom: 1px solid var(--hp-ink); display: flex; justify-content: space-between; align-items: baseline; }
+.hp-sub-title:first-child { margin-top: 0; }
+.hp-sub-title small { font-family: var(--hp-font-en); font-weight: 400; font-size: 12px; letter-spacing: 0.2em; color: var(--hp-mute); }
+.hp-faq details { border-bottom: 1px solid var(--hp-line); }
+.hp-faq summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 34px 1fr 20px; align-items: center; padding: 22px 4px; font-size: 16.5px; font-weight: 500; }
+.hp-faq summary::-webkit-details-marker { display: none; }
+.hp-faq summary::before { content: 'Q'; font-family: var(--hp-font-en); color: var(--hp-point); font-size: 16px; }
+.hp-faq summary::after { content: '+'; font-size: 22px; font-weight: 300; color: var(--hp-mute); text-align: right; line-height: 1; }
+.hp-faq details[open] summary::after { content: '−'; }
+.hp-faq details p { padding: 0 4px 24px 34px; font-size: 15px; color: var(--hp-sub); line-height: 1.75; }
+</style>
+</head>
+<body style="margin:0; background:#DAD7CF;">
+
+<!-- 아이콘 모음 (페이지 안에서 재사용) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="hp-qr" viewBox="-1 -1 27 27"><path fill="currentColor" d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM16 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h1v1h-1zM14 1h1v1h-1zM15 1h1v1h-1zM16 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM8 2h1v1h-1zM9 2h1v1h-1zM11 2h1v1h-1zM13 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM10 4h1v1h-1zM11 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM15 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM11 5h1v1h-1zM12 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM11 7h1v1h-1zM13 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM1 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM9 8h1v1h-1zM13 8h1v1h-1zM15 8h1v1h-1zM16 8h1v1h-1zM21 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM9 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM17 9h1v1h-1zM18 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM24 9h1v1h-1zM1 10h1v1h-1zM4 10h1v1h-1zM6 10h1v1h-1zM7 10h1v1h-1zM9 10h1v1h-1zM10 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM19 10h1v1h-1zM20 10h1v1h-1zM24 10h1v1h-1zM0 11h1v1h-1zM1 11h1v1h-1zM2 11h1v1h-1zM10 11h1v1h-1zM12 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM20 11h1v1h-1zM24 11h1v1h-1zM3 12h1v1h-1zM4 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM10 12h1v1h-1zM11 12h1v1h-1zM15 12h1v1h-1zM16 12h1v1h-1zM21 12h1v1h-1zM23 12h1v1h-1zM24 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM2 13h1v1h-1zM4 13h1v1h-1zM8 13h1v1h-1zM9 13h1v1h-1zM11 13h1v1h-1zM18 13h1v1h-1zM19 13h1v1h-1zM20 13h1v1h-1zM22 13h1v1h-1zM23 13h1v1h-1zM0 14h1v1h-1zM1 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM9 14h1v1h-1zM10 14h1v1h-1zM11 14h1v1h-1zM14 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM17 14h1v1h-1zM18 14h1v1h-1zM20 14h1v1h-1zM22 14h1v1h-1zM2 15h1v1h-1zM3 15h1v1h-1zM5 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM18 15h1v1h-1zM20 15h1v1h-1zM23 15h1v1h-1zM24 15h1v1h-1zM0 16h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM4 16h1v1h-1zM6 16h1v1h-1zM8 16h1v1h-1zM9 16h1v1h-1zM10 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM21 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM8 17h1v1h-1zM10 17h1v1h-1zM11 17h1v1h-1zM16 17h1v1h-1zM20 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM8 18h1v1h-1zM10 18h1v1h-1zM11 18h1v1h-1zM12 18h1v1h-1zM13 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM20 18h1v1h-1zM21 18h1v1h-1zM23 18h1v1h-1zM24 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM9 19h1v1h-1zM10 19h1v1h-1zM16 19h1v1h-1zM20 19h1v1h-1zM23 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM19 20h1v1h-1zM20 20h1v1h-1zM21 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM9 21h1v1h-1zM10 21h1v1h-1zM11 21h1v1h-1zM12 21h1v1h-1zM14 21h1v1h-1zM18 21h1v1h-1zM19 21h1v1h-1zM21 21h1v1h-1zM22 21h1v1h-1zM23 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM9 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM18 22h1v1h-1zM20 22h1v1h-1zM21 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM10 23h1v1h-1zM11 23h1v1h-1zM12 23h1v1h-1zM15 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM24 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM15 24h1v1h-1zM20 24h1v1h-1z"/></symbol>
+    <symbol id="hp-i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3.3-6 9-6 9 6 9 6-3.3 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.6"/><path d="M4 20 20 4"/></g></symbol>
+    <symbol id="hp-i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9.5 2.8h5"/></g></symbol>
+    <symbol id="hp-i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8.5" cy="8" r="3.2"/><path d="M2.8 19.5c.6-3.2 2.9-5 5.7-5s5.1 1.8 5.7 5"/><circle cx="16.5" cy="9" r="2.6"/><path d="M15.8 14.6c2.6-.3 4.8 1.2 5.4 4.2"/></g></symbol>
+    <symbol id="hp-i-dual" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><path d="M5.8 5.8h1.4v1.4H5.8z"/><path d="M14.5 3.5c3.6.2 6 2.6 6 6"/><path d="M16.6 13.8l-1.6 1.6a8 8 0 0 1-3.4-3.4l1.6-1.6-1.8-3.4-2 .4"/><path d="M5 21h14"/></g></symbol>
+    <symbol id="hp-i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></g></symbol>
+    <symbol id="hp-i-shieldcall" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 19.5 5.6v5.6c0 4.8-3.2 8.3-7.5 10-4.3-1.7-7.5-5.2-7.5-10V5.6z"/><path d="m8.8 12 2.2 2.2 4.3-4.4"/></g></symbol>
+    <symbol id="hp-i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="hp-i-arrow" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="hp-i-tag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1 1 0 0 1 0 1.4l-7.3 7.3a1 1 0 0 1-1.4 0z"/><circle cx="8" cy="8" r="1.4"/></g></symbol>
+    <symbol id="hp-i-chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></g></symbol>
+    <symbol id="hp-i-book" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><circle cx="12" cy="10" r="2.6"/><path d="M8 17c.7-2 2.2-3 4-3s3.3 1 4 3M3 7h2M3 12h2M3 17h2"/></g></symbol>
+    <symbol id="hp-i-list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></g></symbol>
+    <symbol id="hp-i-toggle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="7" width="19" height="10" rx="5"/><circle cx="16.5" cy="12" r="3"/></g></symbol>
+    <symbol id="hp-i-preview" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 8h18"/><path d="M7 14s1.8-3 5-3 5 3 5 3-1.8 3-5 3-5-3-5-3z"/><circle cx="12" cy="14" r="1"/></g></symbol>
+  </defs>
+</svg>
+
+<div class="hpqr">
+
+  <!-- ============ 01 · 메인 사진 + 브랜드 소개 ============ -->
+  <div class="hp-main-photo">
+    <div class="hp-ph" style="aspect-ratio:4/5"><b>MAIN PHOTO</b>메인 사진 · 860 × 1075</div>
+  </div>
+  <section class="hp-intro">
+    <span class="hp-eyebrow">HELLOPOUCHON NEW COLLECTION</span>
+    <h1>아이의 이름을 담은,<span class="en">OUR HOME.</span></h1>
+    <p class="hp-intro-sub">헬로뽀숑 뉴 컬렉션</p>
+    <hr class="hp-intro-rule">
+    <div class="hp-intro-body">
+      <p><strong>아이 곁에 오래 머무는<br>편안함과 안전함을 담았습니다.</strong></p>
+      <p>아이에게 소중히 건네는 첫 선물.<br>아이의 이름을 새기고,<br>별빛과 탄생석으로 작은 반짝임을 더했습니다.</p>
+      <p>그 마음이<br>아이의 하루에 함께하기를.</p>
+    </div>
+  </section>
+
+  <!-- ============ 02 · QR 각인 모델 출시 ============ -->
+  <section class="hp-sec is-paper hp-center hp-launch">
+    <span class="hp-new">NEW</span>
+    <h2 class="hp-title">QR 각인 모델 출시</h2>
+    <p class="hp-launch-head">헬로뽀숑만의 QR 각인을 더했습니다.</p>
+    <div class="hp-launch-body">
+      <p>OUR HOME은 텍스트 각인과 QR 각인,<br>두 가지 방식 중에서 선택할 수 있습니다.</p>
+      <p>QR 각인을 선택하면 뒷면에 QR코드가 새겨지고,<br>스캔하면 등록된 보호자에게 전화가 연결됩니다.</p>
+    </div>
+    <div class="hp-launch-tags"><span>텍스트 각인</span><span>QR 각인</span></div>
+  </section>
+
+  <!-- ============ 03 · 특허 출원 ============ -->
+  <section class="hp-sec">
+    <div class="hp-patent">
+      <div>
+        <svg class="hp-seal" viewBox="0 0 140 140" aria-hidden="true">
+          <defs><path id="hp-seal-arc" d="M70 70m-52 0a52 52 0 1 1 104 0a52 52 0 1 1-104 0"/></defs>
+          <circle cx="70" cy="70" r="67" fill="none" stroke="currentColor" stroke-width="1"/>
+          <circle cx="70" cy="70" r="38" fill="none" stroke="currentColor" stroke-width="1"/>
+          <text font-family="Aboreto, serif" font-size="10.5" letter-spacing="3.2" fill="currentColor"><textPath href="#hp-seal-arc">PATENT PENDING · HELLOPOUCHON QR ·</textPath></text>
+          <text x="70" y="66" text-anchor="middle" font-family="Aboreto, serif" font-size="15" fill="currentColor">QR</text>
+          <text x="70" y="84" text-anchor="middle" font-family="Aboreto, serif" font-size="8" letter-spacing="1.5" fill="currentColor">SAFE CALL</text>
+        </svg>
+        <span class="hp-eyebrow">PATENT PENDING</span>
+        <h2 class="hp-title">헬로뽀숑 자체 개발<br>QR 안심연락 기술<br>특허 출원</h2>
+        <p class="hp-lead">보호자의 번호를 드러내지 않고 연결하는 방식을 헬로뽀숑이 직접 설계했습니다.</p>
+        <p class="hp-patent-no"><strong>출원번호</strong><span class="hp-tbd">000-0000-0000000 (확정 후 기입)</span></p>
+        <p class="hp-warn">유사 제품에 주의하세요.</p>
+      </div>
+      <div class="hp-ph" style="aspect-ratio:3/4"><b>PHOTO</b>패키지 개봉 컷<br>350 × 467</div>
+    </div>
+  </section>
+
+  <!-- ============ 04 · 6가지 안심 ============ -->
+  <section class="hp-sec is-deep">
+    <div class="hp-center">
+      <span class="hp-eyebrow">SIX WAYS WE PROTECT</span>
+      <h2 class="hp-title">헬로뽀숑 QR에 담긴<br><span class="hp-big6">6</span>가지 안심</h2>
+    </div>
+    <ul class="hp-grid6">
+      <li><svg aria-hidden="true"><use href="#hp-i-eye"/></svg><span class="hp-num">01</span><h3>번호 노출 없는 연결</h3><p>보호자의 실제 번호는 발견자에게 표시되지 않습니다.</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-clock"/></svg><span class="hp-num">02</span><h3>매번 바뀌는 안심번호</h3><p>연락할 때마다 새로 발급되며, 10분 뒤 자동으로 리셋됩니다.</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-users"/></svg><span class="hp-num">03</span><h3>보호자 2인 연결</h3><p>보호자 1이 받지 않으면 보호자 2에게 자동으로 연결됩니다.</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-dual"/></svg><span class="hp-num">04</span><h3>QR · ARS 이중 연결</h3><p>QR 스캔이 어려울 땐 각인된 대표번호로 전화해 연결할 수 있습니다.</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-bell"/></svg><span class="hp-num">05</span><h3>스캔 즉시 알림</h3><p>QR 스캔이나 전화 연결 요청이 오면 보호자에게 바로 알림이 전송됩니다.</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-shieldcall"/></svg><span class="hp-num">06</span><h3>발신 번호 보호</h3><p>보호자가 발견자에게 다시 전화를 걸 때도 실제 번호는 표시되지 않습니다.</p></li>
+    </ul>
+  </section>
+
+  <!-- ============ 05 · 각인 선택 ============ -->
+  <!-- 두 카드는 크기·색·강조를 똑같이 유지해 주세요 -->
+  <section class="hp-sec">
+    <div class="hp-center">
+      <span class="hp-eyebrow">CHOOSE YOUR ENGRAVING</span>
+      <h2 class="hp-title">우리 아이에게 맞는<br>각인을 선택하세요.</h2>
+    </div>
+    <div class="hp-types">
+      <div class="hp-type">
+        <span class="hp-type-head">OPTION 01</span>
+        <h3>텍스트 각인</h3>
+        <div class="hp-type-art">
+          <div class="hp-tag"><span class="t-name">이나은</span><span class="t-phone">010-1234-5678</span></div>
+        </div>
+        <p class="hp-type-lead">한눈에 보이는 연락처.</p>
+        <p class="hp-type-desc">뒷면에 이름과 보호자 연락처를 새기는 방식입니다.<br>새겨진 번호로 바로 연락할 수 있습니다.</p>
+      </div>
+      <div class="hp-type">
+        <span class="hp-type-head">OPTION 02</span>
+        <h3>QR 각인</h3>
+        <div class="hp-type-art">
+          <div class="hp-tag"><svg aria-hidden="true"><use href="#hp-qr"/></svg><span class="t-ars">0000-0000 · 12345</span></div>
+        </div>
+        <p class="hp-type-lead">연락처 노출 없이 연결되는 방식.</p>
+        <p class="hp-type-desc">뒷면에 QR코드를 새기는 방식입니다.<br>연락처가 드러나지 않고, 보호자 두 사람까지 연결됩니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 06 · 시안 미리보기 CTA (페이지 유일한 버튼) ============ -->
+  <section class="hp-cta">
+    <span class="hp-eyebrow">YOUR CHILD'S NAME IS THE DESIGN</span>
+    <h2 class="hp-title">아이 이름이<br>곧 디자인이 됩니다</h2>
+    <p class="hp-lead">주문 전, 원하는 문구와 서체를 넣어<br>텍스트 각인도 QR 각인도 미리 확인해 보세요.</p>
+    <ol class="hp-cta-steps">
+      <li><small>01</small>제품 선택</li>
+      <li><small>02</small>앞면 이름 입력</li>
+      <li><small>03</small>서체 선택</li>
+      <li><small>04</small>뒷면 각인 확인</li>
+    </ol>
+    <!-- 시안 미리보기 링크: 제품이 바뀌면 href의 주소만 바꿔 주세요 -->
+    <a class="hp-btn" href="https://ecimg.cafe24img.com/pg1800b90537053085/hellopouchon/preview/engraving-preview.html?product=drawing-heart" target="_blank" rel="noopener">
+      지금 시안 바로 보러가기
+      <svg aria-hidden="true"><use href="#hp-i-arrow"/></svg>
+    </a>
+    <p class="hp-note">시안은 각인 예시이며, 실제 제작 시 글자 크기와 위치는 조금 달라질 수 있어요.</p>
+  </section>
+
+  <!-- ============ 07 · 제품 이미지 갤러리 ============ -->
+  <!--
+    [이미지 넣는 법]  모든 사진은 4:5 비율이에요.
+    · 배치는 자동이에요: 크게 → 크게 → 작게 두 장 나란히 → 크게 → 크게 → 작게 두 장 나란히 … 순서로 반복돼요.
+    · 사진 넣기: <div class="hp-ph">…</div> 를 <img src="사진주소" alt="설명"> 로 바꿔요.
+    · 사진 추가 · 삭제: <figure …>…</figure> 를 네 줄씩(크게 2 + 작게 2) 넣거나 빼면 배치가 그대로 유지돼요.
+  -->
+  <section class="hp-gallery">
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 01</b>크게 · 860 × 1075</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 02</b>크게 · 860 × 1075</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 03</b>작게 · 426 × 533</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 04</b>작게 · 426 × 533</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 05</b>크게 · 860 × 1075</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 06</b>크게 · 860 × 1075</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 07</b>작게 · 426 × 533</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 08</b>작게 · 426 × 533</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 09</b>크게 · 860 × 1075</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 10</b>크게 · 860 × 1075</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 11</b>작게 · 426 × 533</div></figure>
+    <figure class="hp-g-item"><div class="hp-ph"><b>PHOTO 12</b>작게 · 426 × 533</div></figure>
+  </section>
+
+  <!-- ============ 08 · 스캔 즉시 알림 ============ -->
+  <section class="hp-sec">
+    <span class="hp-eyebrow">INSTANT ALERT</span>
+    <h2 class="hp-title">스캔하는 순간,<br>보호자에게 먼저 알려드려요</h2>
+    <p class="hp-lead">누군가 QR을 스캔하거나 대표번호로 전화를 걸면<br>보호자 휴대폰으로 바로 알림이 가요.</p>
+    <div class="hp-notify">
+      <div class="hp-phone"><div class="hp-ph"><b>GIF</b>푸시 알림 화면<br>(390 × 760)</div></div>
+      <div class="hp-bubbles">
+        <div class="hp-bubble"><i>H</i><div><small><span>헬로뽀숑</span><span>방금</span></small><strong>QR이 스캔되었어요</strong><span>발견자가 연결 화면을 열었어요</span></div></div>
+        <div class="hp-bubble"><i>H</i><div><small><span>헬로뽀숑</span><span>방금</span></small><strong>전화 연결 요청이 왔어요</strong><span>고유번호를 입력해 연결을 시도했어요</span></div></div>
+        <p class="hp-note" style="margin-top:6px">알림 화면은 이해를 돕기 위한 예시예요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 09 · 보호자 2명 연결 ============ -->
+  <section class="hp-sec is-paper">
+    <span class="hp-eyebrow">TWO GUARDIANS</span>
+    <h2 class="hp-title">내가 못 받는 순간에도<br>다른 보호자에게 연결돼요</h2>
+    <p class="hp-lead">보호자는 두 명까지 등록할 수 있어요.<br>회의나 운전으로 전화를 못 받아도<br>다음 보호자에게 바로 연결돼요.</p>
+    <div class="hp-flow">
+      <div class="hp-flow-node"><small>FINDER</small><strong>발견자</strong><span>QR 스캔 또는 ARS 전화</span></div>
+      <div class="hp-flow-arrow"><svg aria-hidden="true"><use href="#hp-i-arrow"/></svg></div>
+      <div class="hp-flow-node is-dim"><small>GUARDIAN 1</small><strong>보호자 1</strong><span>받지 못하면</span></div>
+      <div class="hp-flow-arrow"><svg aria-hidden="true"><use href="#hp-i-arrow"/></svg></div>
+      <div class="hp-flow-node is-on"><small>GUARDIAN 2</small><strong>보호자 2</strong><span>이어서 연결</span></div>
+    </div>
+    <ul class="hp-checks">
+      <li><svg aria-hidden="true"><use href="#hp-i-check"/></svg>보호자 두 명까지 등록</li>
+      <li><svg aria-hidden="true"><use href="#hp-i-check"/></svg>QR도 전화도 같은 순서로 연결</li>
+    </ul>
+  </section>
+
+  <!-- ============ 10 · QR · ARS 이중 연결 ============ -->
+  <section class="hp-sec is-deep">
+    <div class="hp-center">
+      <span class="hp-eyebrow">QR + ARS DOUBLE CONNECT</span>
+      <h2 class="hp-title">QR 스캔이 어려운 순간에도<br>보호자에게 연락할 수 있어요</h2>
+      <p class="hp-lead">오래 착용해 QR이 흐려졌거나, 스캔하기 어려운 상황을 위해<br>뒷면에 대표번호와 고유번호 5자리를 함께 새겨요.</p>
+    </div>
+
+    <div class="hp-engrave">
+      <div class="hp-engrave-art">
+        <div class="hp-tag">
+          <svg aria-hidden="true"><use href="#hp-qr"/></svg>
+          <span class="t-ars"><em>대표번호</em><span class="hp-tbd">0000-0000</span></span>
+          <span class="t-ars" style="margin-top:-8px"><em>고유번호</em>12345</span>
+        </div>
+      </div>
+      <ol class="hp-legend">
+        <li><span class="hp-num">01</span><div><strong>QR</strong><span>휴대폰 카메라로 스캔하면 앱 설치 없이 연결 화면이 열려요</span></div></li>
+        <li><span class="hp-num">02</span><div><strong>대표번호</strong><span>QR 스캔이 어려울 땐 이 번호로 전화를 걸어요</span></div></li>
+        <li><span class="hp-num">03</span><div><strong>고유번호 5자리</strong><span>주얼리마다 하나뿐인 번호예요. 안내에 따라 입력하면 보호자에게 연결돼요</span></div></li>
+      </ol>
+    </div>
+    <p class="hp-merge">보호자 1 → 보호자 2 순서로 연결<span>어느 쪽으로 연락해도 실제 번호는 드러나지 않아요</span></p>
+
+  </section>
+
+  <!-- ============ 11 · 보호자 전용 앱 ============ -->
+  <!-- 출시되지 않은 기능은 카드에서 빼 주세요 -->
+  <section class="hp-sec is-sand">
+    <div class="hp-center">
+      <span class="hp-eyebrow">HELLOPOUCHON APP</span>
+      <h2 class="hp-title">보호자 전용 앱으로<br>쉽고 간편하게 관리하세요</h2>
+      <p class="hp-lead"><strong style="color:var(--hp-ink);font-weight:600">번호가 바뀌어도 제품은 그대로.</strong><br>연락처와 메시지는 앱에서 언제든 바꿀 수 있어요.</p>
+    </div>
+    <ul class="hp-appgrid">
+      <li><svg aria-hidden="true"><use href="#hp-i-tag"/></svg><h3>등록 제품 변경</h3><p>내 주얼리를 등록하고 바꿔요</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-chat"/></svg><h3>공개 메시지</h3><p>발견자에게 보일 메시지를 직접 써요</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-book"/></svg><h3>연락처 관리</h3><p>보호자 연락처를 언제든 바꿔요</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-list"/></svg><h3>연락 기록</h3><p>스캔과 연락 내역을 확인해요</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-toggle"/></svg><h3>알림 설정</h3><p>받고 싶은 알림을 골라요</p></li>
+      <li><svg aria-hidden="true"><use href="#hp-i-preview"/></svg><h3>내 QR 페이지 미리보기</h3><p>발견자 화면을 미리 확인해요</p></li>
+    </ul>
+  </section>
+
+  <!-- ============ 12 · 자주 묻는 질문 ============ -->
+  <section class="hp-sec">
+    <h3 class="hp-sub-title">자주 묻는 질문<small>FAQ</small></h3>
+    <div class="hp-faq">
+      <!-- 답변 작성: 각 질문 아래 <p> 안의 "답변을 입력해 주세요" 부분을 지우고 답변을 적어 주세요 -->
+      <details>
+        <summary>QR을 스캔한 사람에게 보호자 연락처가 보이나요?</summary>
+        <p><span class="hp-tbd">답변을 입력해 주세요</span></p>
+      </details>
+      <details>
+        <summary>QR코드가 긁히거나 지워지면 어떻게 되나요?</summary>
+        <p><span class="hp-tbd">답변을 입력해 주세요</span></p>
+      </details>
+      <details>
+        <summary>물이나 땀에 닿아도 괜찮나요?</summary>
+        <p><span class="hp-tbd">답변을 입력해 주세요</span></p>
+      </details>
+      <details>
+        <summary>보호자 연락처가 바뀌면 변경할 수 있나요?</summary>
+        <p><span class="hp-tbd">답변을 입력해 주세요</span></p>
+      </details>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
