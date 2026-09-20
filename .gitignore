@@ -1,1 +1,8 @@
 .DS_Store
+
+# Rhino 작업 파일은 Google Drive에 보관합니다 (rhino/AGENTS.md 참고).
+# 로컬 경로: G:\내 드라이브\라이노\
+*.3dm
+*.3dmbak
+*.rhl
+*_embedded_files/
