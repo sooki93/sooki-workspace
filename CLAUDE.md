@@ -6,5 +6,6 @@
 
 - `atheroom-cafe24/` → [atheroom-cafe24/AGENTS.md](atheroom-cafe24/AGENTS.md) (프런트엔드 작업은 `atheroom-cafe24/frontend/AGENTS.md`도 적용)
 - `rhino/` → [rhino/AGENTS.md](rhino/AGENTS.md)
+- `naver-blog-auto/` → [naver-blog-auto/AGENTS.md](naver-blog-auto/AGENTS.md)
 
 지침을 갱신할 때는 이 파일이 아니라 해당 AGENTS.md를 수정하세요. 이 파일은 AGENTS.md를 가리키는 포인터입니다.

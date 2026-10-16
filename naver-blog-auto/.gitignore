@@ -1,0 +1,19 @@
+# 설치 파일
+node_modules/
+
+# 네이버 로그인 세션 (쿠키) — 절대 올리지 않는다
+session/
+
+# 실행 기록·에디터 화면 캡처
+logs/
+
+# 사진은 용량·초상권 때문에 로컬에만 둔다 (사진 설명 목록만 올림)
+photos/*
+!photos/.gitkeep
+!photos/_사진목록.md
+posts/images/
+
+# 발행 기록 (로컬 상태)
+posts/_발행기록.json
+
+.DS_Store

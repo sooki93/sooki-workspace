@@ -28,3 +28,9 @@
 - 로컬 접근 경로: `G:\내 드라이브\라이노\` (Google Drive for desktop 마운트)
 
 모델 파일을 이 저장소에 커밋하지 마세요. `.gitignore`가 Rhino 바이너리를 제외합니다.
+
+## 네이버 블로그 자동 발행기
+
+`naver-blog-auto/` 작업을 시작하기 전에 [프로젝트 AGENTS.md](naver-blog-auto/AGENTS.md)를 읽으세요. 헬로뽀숑 네이버 블로그 글을 자동 입력·발행하는 로컬 대시보드입니다.
+
+이 저장소는 공개 저장소입니다. `naver-blog-auto/session/`(네이버 로그인 쿠키), `logs/`, 사진 폴더는 커밋하지 마세요. `naver-blog-auto/.gitignore`가 제외합니다.

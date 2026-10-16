@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>블로그 자동 발행</title>
+<style>
+  :root {
+    --bg: #EFEEE9; --paper: #F8F7F3; --sand: #E3DFD5; --ink: #2F2E29; --sub: #6B675C;
+    --mute: #9E998C; --line: #D3CEC2; --point: #A8884C; --ok: #4E7A52; --warn: #B0583F;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; letter-spacing: -0.01em; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 28px; border-bottom: 1px solid var(--line); background: var(--paper); }
+  header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+  header h1 small { color: var(--mute); font-weight: 400; margin-left: 8px; }
+  .auth { display: flex; align-items: center; gap: 10px; }
+  .badge { font-size: 13px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); }
+  .badge.ok { color: var(--ok); border-color: var(--ok); }
+  .badge.expired, .badge.none { color: var(--warn); border-color: var(--warn); }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); padding: 8px 16px; }
+  button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  button:disabled { opacity: .45; cursor: default; }
+  main { display: grid; grid-template-columns: 360px 1fr; gap: 24px; padding: 24px 28px; max-width: 1280px; margin: 0 auto; }
+  .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .panel + .panel { margin-top: 16px; }
+  .panel h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--sub); letter-spacing: .02em; }
+  .posts { list-style: none; margin: 0; padding: 0; }
+  .posts li { padding: 10px 12px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+  .posts li:hover { background: var(--bg); }
+  .posts li.on { border-color: var(--point); background: var(--bg); }
+  .posts small { display: block; color: var(--mute); font-size: 12px; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hint { margin: 10px 0 0; font-size: 12.5px; color: var(--mute); }
+  .imgcheck { font-size: 13px; color: var(--sub); }
+  .imgcheck .miss { color: var(--warn); }
+  #log { height: 260px; overflow: auto; margin: 0; font: 12.5px/1.6 ui-monospace, Menlo, monospace; white-space: pre-wrap; color: var(--sub); background: var(--bg); border-radius: 8px; padding: 10px; }
+
+  /* 블로그 모양 미리보기 (가운데 정렬 감성형) */
+  .preview { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 56px 40px 72px; min-height: 70vh; }
+  .preview .empty { color: var(--mute); text-align: center; margin-top: 30vh; }
+  .post { max-width: 640px; margin: 0 auto; text-align: center; color: #333; font-size: 16px; line-height: 1.9; }
+  .post h1 { font-size: 26px; line-height: 1.45; font-weight: 600; margin: 0 0 40px; padding-bottom: 28px; border-bottom: 1px solid #eee; }
+  .post p { margin: 0 0 1.9em; }
+  .post h3 { font-size: 20px; font-weight: 600; margin: 2.6em 0 1.2em; }
+  .post .list p { margin: 0; }
+  .post .list { margin-bottom: 1.9em; }
+  .post blockquote { margin: 2em auto; padding: 22px 26px; max-width: 460px; border-top: 2px solid #333; border-bottom: 2px solid #333; }
+  .post blockquote p { margin: 0; }
+  .post hr { border: 0; width: 40px; border-top: 1px solid #bbb; margin: 3em auto; }
+  .post figure { margin: 2em 0; }
+  .post figure .ph { aspect-ratio: 4/3; background: var(--sand); display: flex; align-items: center; justify-content: center; color: var(--mute); font-size: 13px; border: 1px dashed var(--line); }
+  .post figure .ph.miss { color: var(--warn); border-color: var(--warn); }
+  .post figure img { width: 100%; display: block; }
+  .post figcaption { font-size: 13px; color: #999; margin-top: 8px; }
+  .post .link { display: inline-block; margin: 1em 0; padding: 14px 22px; border: 1px solid #ddd; border-radius: 6px; color: #333; text-decoration: none; }
+  .post .tags { margin-top: 48px; font-size: 13px; color: #00a; opacity: .7; }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; padding: 16px; }
+    header { padding: 14px 16px; flex-wrap: wrap; }
+    .preview { padding: 32px 16px 48px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>네이버 블로그 자동 발행<small>헬로뽀숑</small></h1>
+  <div class="auth">
+    <span id="badge" class="badge">확인 중</span>
+    <button id="loginBtn">네이버 로그인</button>
+    <button id="logoutBtn" class="ghost">세션 지우기</button>
+  </div>
+</header>
+
+<main>
+  <div>
+    <section class="panel">
+      <h2>글 선택</h2>
+      <ul id="posts" class="posts"></ul>
+      <p class="hint">posts 폴더의 .md 파일이 여기에 나와요.</p>
+    </section>
+
+    <section class="panel">
+      <h2>발행</h2>
+      <div class="actions">
+        <button id="draftBtn" class="ghost" disabled>임시저장</button>
+        <button id="publishBtn" disabled>바로 발행</button>
+      </div>
+      <p id="lockReason" class="hint" style="color: var(--warn)"></p>
+      <p id="imgcheck" class="imgcheck hint"></p>
+      <p class="hint">한 번에 한 글씩 발행해요. 보안문자나 추가 인증이 뜨면 열린 창에서 직접 처리해주세요.</p>
+    </section>
+
+    <section class="panel">
+      <h2>진행 로그</h2>
+      <pre id="log"></pre>
+    </section>
+  </div>
+
+  <section class="preview" id="preview"><p class="empty">왼쪽에서 글을 고르면 블로그 모양으로 미리 보여드려요.</p></section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let current = null;
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const rich = (s) => esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || res.statusText);
+  return body;
+}
+
+async function refreshStatus() {
+  const s = await api('/api/status');
+  const b = $('badge');
+  b.textContent = s.busy ? `${s.label} · ${s.busy} 중` : s.label;
+  b.className = `badge ${s.state}`;
+  const ready = s.state === 'ok' && current && !s.busy;
+  $('draftBtn').disabled = $('publishBtn').disabled = !ready;
+  $('lockReason').textContent = ready ? ''
+    : s.busy ? `지금 "${s.busy}" 작업 중이라 잠겨 있어요. 열린 크롬 창의 작업이 끝나면 풀려요.`
+    : s.state !== 'ok' ? '네이버 로그인이 필요해요. 오른쪽 위 [네이버 로그인]을 눌러주세요.'
+    : '위 "글 선택"에서 발행할 글을 눌러주세요.';
+  $('loginBtn').disabled = Boolean(s.busy);
+}
+
+let postList = [];
+const fmtDate = (iso) => new Date(iso).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+async function loadPosts() {
+  const posts = postList = await api('/api/posts');
+  $('posts').innerHTML = posts.map((p) => `<li data-file="${esc(p.file)}">${esc(p.title)}<small>${esc(p.file)}${p.published ? ` · <b style="color:var(--ok)">발행됨 ${fmtDate(p.published.at)}</b>` : ''}</small></li>`).join('') || '<li>글 파일이 없어요.</li>';
+  document.querySelectorAll('#posts li[data-file]').forEach((li) => li.onclick = () => selectPost(li.dataset.file));
+  document.querySelectorAll('#posts li').forEach((li) => li.classList.toggle('on', li.dataset.file === current));
+  // 처음 열면 첫 글을 자동으로 선택
+  if (!current && posts.length) selectPost(posts[0].file);
+}
+
+async function selectPost(file) {
+  current = file;
+  document.querySelectorAll('#posts li').forEach((li) => li.classList.toggle('on', li.dataset.file === file));
+  const post = await api(`/api/post?file=${encodeURIComponent(file)}`);
+  const html = [`<h1>${esc(post.meta.title)}</h1>`];
+  for (const b of post.blocks) {
+    if (b.type === 'paragraph') html.push(`<p>${b.lines.map(rich).join('<br>')}</p>`);
+    if (b.type === 'heading') html.push(`<h3>${esc(b.text)}</h3>`);
+    if (b.type === 'list') html.push(`<div class="list">${b.lines.map((l) => {
+      const t = l.replace(/^-\s+/, ''); const m = t.match(/^([^:]{1,20}):\s*(.*)$/);
+      return `<p>· ${m ? `<b>${esc(m[1])}</b> : ${rich(m[2])}` : rich(t)}</p>`;
+    }).join('')}</div>`);
+    if (b.type === 'checklist') html.push(`<blockquote>${b.lines.map((l) => `<p>${esc(l)}</p>`).join('')}</blockquote>`);
+    if (b.type === 'divider') html.push('<hr>');
+    if (b.type === 'link') html.push(`<a class="link" href="${esc(b.url)}" target="_blank">${esc(b.url)}</a>`);
+    if (b.type === 'image') html.push(`<figure>${b.found
+      ? `<img src="/api/image?file=${encodeURIComponent(file)}&n=${b.n}">`
+      : `<div class="ph miss">사진 ${b.n} 파일 없음 · ${esc(post.imageDir || '')}/${b.n}.jpg</div>`}${b.caption ? `<figcaption>${esc(b.caption)}</figcaption>` : ''}</figure>`);
+  }
+  html.push(`<div class="tags">${post.meta.tags.map((t) => '#' + esc(t)).join(' ')}</div>`);
+  $('preview').innerHTML = `<article class="post">${html.join('')}</article>`;
+
+  const imgs = post.blocks.filter((b) => b.type === 'image');
+  const miss = imgs.filter((b) => !b.found).map((b) => b.n);
+  $('imgcheck').innerHTML = imgs.length
+    ? `사진 ${imgs.length - miss.length}/${imgs.length}장 준비됨` + (miss.length ? ` · <span class="miss">없는 사진: ${miss.join(', ')}번 (건너뛰고 올라가요)</span>` : '')
+    : '';
+  refreshStatus();
+}
+
+async function run(btn, fn) {
+  btn.disabled = true;
+  try { await fn(); } catch (e) { $('log').textContent += `오류: ${e.message}\n`; $('log').scrollTop = $('log').scrollHeight; }
+  refreshStatus();
+}
+
+$('loginBtn').onclick = () => run($('loginBtn'), () => api('/api/login', { method: 'POST' }));
+$('logoutBtn').onclick = () => run($('logoutBtn'), () => api('/api/logout', { method: 'POST' }));
+$('draftBtn').onclick = () => run($('draftBtn'), () => api('/api/publish', { method: 'POST', body: JSON.stringify({ file: current, mode: 'draft' }) }));
+// 브라우저 기본 확인창은 앱 안 브라우저에서 보이지 않아서, 두 번 누르는 방식으로 확인한다
+let armTimer = null;
+$('publishBtn').onclick = () => {
+  const btn = $('publishBtn');
+  if (!btn.dataset.armed) {
+    btn.dataset.armed = '1';
+    const done = postList.find((p) => p.file === current)?.published;
+    btn.textContent = done ? `${fmtDate(done.at)}에 이미 발행한 글이에요. 한 번 더 누르면 또 발행` : '한 번 더 누르면 전체공개 발행';
+    btn.style.background = 'var(--warn)';
+    btn.style.borderColor = 'var(--warn)';
+    armTimer = setTimeout(disarm, 5000);
+    return;
+  }
+  disarm();
+  run(btn, async () => {
+    const r = await api('/api/publish', { method: 'POST', body: JSON.stringify({ file: current, mode: 'publish' }) });
+    if (r.url) $('log').textContent += `발행된 글: ${r.url}\n`;
+    await loadPosts();
+  });
+};
+function disarm() {
+  clearTimeout(armTimer);
+  const btn = $('publishBtn');
+  delete btn.dataset.armed;
+  btn.textContent = '바로 발행';
+  btn.style.background = btn.style.borderColor = '';
+}
+
+const es = new EventSource('/api/events');
+es.onmessage = (e) => { const el = $('log'); el.textContent += JSON.parse(e.data) + '\n'; el.scrollTop = el.scrollHeight; refreshStatus(); };
+
+loadPosts();
+refreshStatus();
+setInterval(refreshStatus, 5000);
+</script>
+</body>
+</html>
