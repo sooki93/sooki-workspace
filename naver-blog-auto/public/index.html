@@ -89,6 +89,7 @@
       </div>
       <p id="lockReason" class="hint" style="color: var(--warn)"></p>
       <p id="imgcheck" class="imgcheck hint"></p>
+      <button id="imgFolderBtn" class="ghost" style="width:100%; margin-top:8px" disabled>사진 폴더 열기</button>
       <p class="hint">한 번에 한 글씩 발행해요. 보안문자나 추가 인증이 뜨면 열린 창에서 직접 처리해주세요.</p>
     </section>
 
@@ -122,6 +123,7 @@ async function refreshStatus() {
   b.className = `badge ${s.state}`;
   const ready = s.state === 'ok' && current && !s.busy;
   $('draftBtn').disabled = $('publishBtn').disabled = !ready;
+  $('imgFolderBtn').disabled = !current;
   $('lockReason').textContent = ready ? ''
     : s.busy ? `지금 "${s.busy}" 작업 중이라 잠겨 있어요. 열린 크롬 창의 작업이 끝나면 풀려요.`
     : s.state !== 'ok' ? '네이버 로그인이 필요해요. 오른쪽 위 [네이버 로그인]을 눌러주세요.'
@@ -176,6 +178,10 @@ async function run(btn, fn) {
   refreshStatus();
 }
 
+$('imgFolderBtn').onclick = () => run($('imgFolderBtn'), async () => {
+  const r = await api('/api/open-images', { method: 'POST', body: JSON.stringify({ file: current }) });
+  $('log').textContent += `사진 폴더를 열었어요: ${r.dir} (1.jpg, 2.jpg… 번호대로 넣고 글을 다시 눌러주세요)\n`;
+});
 $('loginBtn').onclick = () => run($('loginBtn'), () => api('/api/login', { method: 'POST' }));
 $('logoutBtn').onclick = () => run($('logoutBtn'), () => api('/api/logout', { method: 'POST' }));
 $('draftBtn').onclick = () => run($('draftBtn'), () => api('/api/publish', { method: 'POST', body: JSON.stringify({ file: current, mode: 'draft' }) }));

@@ -1,6 +1,7 @@
 // 네이버 블로그 자동 발행 대시보드 서버 (http://localhost:4000)
 
 const http = require('http');
+const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const session = require('./lib/session');
@@ -89,6 +90,18 @@ const server = http.createServer(async (req, res) => {
   if (route === 'GET /api/status') return send(res, 200, { ...session.status(), busy });
 
   if (route === 'POST /api/login') return runJob('로그인', () => session.login(log), res);
+
+  // 선택한 글의 사진 폴더를 Finder로 연다 (없으면 만든다)
+  if (route === 'POST /api/open-images') {
+    const { file } = await readJson(req);
+    const p = postPath(file);
+    if (!p) return send(res, 404, { error: '글 파일을 찾지 못했어요.' });
+    const { imageDir } = parsePostFile(p);
+    if (!imageDir || !imageDir.startsWith(POSTS_DIR + path.sep)) return send(res, 400, { error: '글 파일에 images 경로가 없어요.' });
+    fs.mkdirSync(imageDir, { recursive: true });
+    execFile('open', [imageDir]);
+    return send(res, 200, { dir: path.relative(__dirname, imageDir) });
+  }
 
   if (route === 'POST /api/logout') {
     log('저장된 로그인 세션을 지웠어요.');
