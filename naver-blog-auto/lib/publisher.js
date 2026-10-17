@@ -69,11 +69,13 @@ class Writer {
   // 블록 아래쪽이 편집 영역 가운데쯤 오도록 스크롤한 뒤 위치를 돌려준다
   async boxInView(locator) {
     await locator.scrollIntoViewIfNeeded().catch(() => {});
-    let box = await locator.boundingBox();
-    if (!box) return null;
     const viewH = this.page.viewportSize().height;
-    const bottom = box.y + box.height;
-    if (bottom < 250 || bottom > viewH - 120) {
+    let box = await locator.boundingBox();
+    // 스크롤은 마우스가 있는 곳에서 일어나므로, 먼저 편집 영역 한가운데로 옮긴다
+    for (let i = 0; box && i < 4; i++) {
+      const bottom = box.y + box.height;
+      if (bottom >= 250 && bottom <= viewH - 120) break;
+      await this.page.mouse.move(650, viewH / 2);
       await this.page.mouse.wheel(0, bottom - viewH / 2);
       await pause(400);
       box = await locator.boundingBox();
@@ -103,9 +105,19 @@ class Writer {
   }
 
   async alignCenter() {
-    await (await first(this.frame, S.toolbar.align)).click();
-    await (await first(this.frame, S.toolbar.alignCenter)).click();
-    await pause(150);
+    // 에디터가 다시 그려지는 중이면 버튼이 사라질 수 있어 한 번 더 시도한다
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await (await first(this.frame, S.toolbar.align)).click({ timeout: 5000 });
+        await (await first(this.frame, S.toolbar.alignCenter)).click({ timeout: 5000 });
+        await pause(150);
+        return;
+      } catch (e) {
+        if (attempt) throw e;
+        await this.kb.press('Escape').catch(() => {});
+        await pause(1000);
+      }
+    }
   }
 
   async paragraph(b) {
@@ -177,6 +189,10 @@ class Writer {
       try {
         // 업로드 직후 커서는 사진 아래 줄에 있다. ↑ 키로 사진을 선택하면 캡션 칸이 나타난다
         await this.kb.press('ArrowUp');
+        if (!(await cap.isVisible().catch(() => false))) {
+          await pause(800);
+          if (!(await cap.isVisible().catch(() => false))) await this.kb.press('ArrowUp');
+        }
         await cap.waitFor({ state: 'visible', timeout: 5000 });
         await cap.click();
         await this.kb.insertText(b.caption);
@@ -218,6 +234,30 @@ class Writer {
     }
     await this.alignCenter().catch(() => {});
   }
+}
+
+// 에디터 확인창(se-popup) 처리. 이어쓰기·불러오기 팝업은 "취소"로 새 글을 쓰고, 그 밖의 팝업은 내용을 남기고 취소한다
+async function handleEditorPopup(frame, log) {
+  const popup = frame.locator('.se-popup-alert:visible, .se-popup-alert-confirm:visible').first();
+  if (!(await popup.count())) return false;
+  const text = ((await popup.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').trim();
+  const cancel = popup.locator('.se-popup-button-cancel, button:text-is("취소")').first();
+  const confirm = popup.locator('.se-popup-button-confirm, button:text-is("확인")').first();
+  if (await cancel.count()) {
+    await cancel.click();
+    log(`에디터 확인창을 취소했어요: "${text.slice(0, 60)}"`);
+    // 이어쓰기를 취소하면 에디터가 새 글로 다시 그려진다. 다 그려질 때까지 기다린다
+    if (text.includes('작성 중') || text.includes('이어서')) {
+      await pause(3000);
+      await frame.locator('.se-title-text').first().waitFor({ timeout: 15000 }).catch(() => {});
+      await tryClick(frame, S.helpPanelClose);
+    }
+  } else if (await confirm.count()) {
+    await confirm.click();
+    log(`에디터 알림을 닫았어요: "${text.slice(0, 60)}"`);
+  }
+  await pause(500);
+  return true;
 }
 
 // 자동 저장으로 불러온 이전 글이 있으면 비운다
@@ -292,10 +332,14 @@ async function publish({ file, mode, log = () => {}, onDone }) {
     }
     if (!frame) frame = page.mainFrame();
     await first(frame, S.title, { timeout: 20000 });
-    await tryClick(frame, S.draftPopupCancel);
     await tryClick(frame, S.helpPanelClose);
-
+    // "작성 중인 글" 이어쓰기 팝업은 늦게 뜰 수 있어서 몇 초 기다리며 처리한다 (이전 글과 섞이지 않게 새 글로 시작)
+    for (let i = 0; i < 8; i++) {
+      if (await handleEditorPopup(frame, log)) break;
+      await pause(500);
+    }
     await clearEditor(page, frame, log);
+    await handleEditorPopup(frame, log);
 
     log('제목 입력');
     await (await first(frame, S.title)).click();
@@ -306,9 +350,20 @@ async function publish({ file, mode, log = () => {}, onDone }) {
     const w = new Writer(page, frame, log);
     await w.alignCenter();
     for (const [i, b] of post.blocks.entries()) {
+      await handleEditorPopup(frame, log);
       await w[b.type](b);
       if (b.type === 'heading') log(`소제목: ${b.text}`);
       if (i % 5 === 0) await pause(100);
+    }
+
+    // 시험용: 입력만 하고 저장·발행 없이 에디터를 비운다
+    if (mode === 'dry') {
+      if (onDone) await onDone(page, frame);
+      await clearEditor(page, frame, () => {});
+      await pause(1500);
+      await browser.close();
+      openBrowser = null;
+      return { ok: true };
     }
 
     if (mode === 'publish') {
