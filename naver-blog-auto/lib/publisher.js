@@ -239,6 +239,31 @@ async function clearEditor(page, frame, log) {
   }
 }
 
+// 블로그 공개 글 목록에서 제목으로 방금 글을 찾는다
+async function waitForPublished(page, title) {
+  const blogId = (page.url().match(/blog\.naver\.com\/([A-Za-z0-9_-]+)/) || [])[1];
+  const norm = (t) => t.replace(/\s+/g, ' ').trim();
+  const deadline = Date.now() + 60000;
+  while (Date.now() < deadline) {
+    await pause(3000);
+    for (const f of [page, ...page.frames()]) {
+      const u = f.url();
+      const m = u.match(/logNo=(\d+)/) || u.match(/blog\.naver\.com\/[A-Za-z0-9_-]+\/(\d{9,})/);
+      if (m && blogId) return `https://blog.naver.com/${blogId}/${m[1]}`;
+    }
+    if (!blogId) continue;
+    const list = await page.evaluate(async (id) => {
+      const r = await fetch(`https://blog.naver.com/PostTitleListAsync.naver?blogId=${id}&currentPage=1&categoryNo=0&countPerPage=5`);
+      return r.text();
+    }, blogId).catch(() => '');
+    const items = [...list.matchAll(/"logNo":"(\d+)","title":"([^"]*)"/g)];
+    for (const [, logNo, t] of items) {
+      if (norm(decodeURIComponent(t.replace(/\+/g, ' '))) === norm(title)) return `https://blog.naver.com/${blogId}/${logNo}`;
+    }
+  }
+  return null;
+}
+
 async function publish({ file, mode, log = () => {}, onDone }) {
   if (!fs.existsSync(STATE_FILE)) throw new Error('로그인 세션이 없어요. 먼저 [네이버 로그인]을 눌러주세요.');
   const post = parsePostFile(file);
@@ -300,10 +325,15 @@ async function publish({ file, mode, log = () => {}, onDone }) {
       }
       await tryClick(scope, S.publicRadio);
       log('발행 중…');
+      // 발행 직후 네이버가 브라우저 확인창을 띄우면 Playwright는 기본으로 '취소'한다 → 내용을 남기고 확인
+      page.on('dialog', async (d) => {
+        log(`네이버 확인창: "${d.message()}" → 확인`);
+        await d.accept().catch(() => {});
+      });
       await (await first(scope, S.publishConfirm)).click();
-      await page.waitForURL((u) => !u.toString().includes('postwrite') && !u.toString().includes('Write'), { timeout: 30000 }).catch(() => {});
-      await pause(2000);
-      const url = page.url();
+      // 실제로 글 목록에 올라왔는지 확인 (최대 60초)
+      const url = await waitForPublished(page, post.meta.title);
+      if (!url) throw new Error('발행 버튼은 눌렀지만 블로그에 글이 올라오지 않았어요. 열린 창을 확인해주세요.');
       log(`발행 완료: ${url}`);
       await browser.close();
       openBrowser = null;
