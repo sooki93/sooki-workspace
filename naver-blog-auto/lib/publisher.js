@@ -55,6 +55,15 @@ class Writer {
   }
 
   // 좌표로 누를 때 툴바·화면 밖을 누르지 않도록 막는다 (툴바에는 내돈내산 같은 버튼이 있다)
+  async assertInEditor(y) {
+    const toolbarBottom = await this.frame.evaluate(() => {
+      const bars = [...document.querySelectorAll('[class*="toolbar"]')].filter((e) => e.offsetHeight && e.getBoundingClientRect().top < 200);
+      return Math.max(0, ...bars.map((e) => e.getBoundingClientRect().bottom));
+    });
+    const viewH = this.page.viewportSize().height;
+    if (y < toolbarBottom + 10 || y > viewH - 60) throw new Error(`누를 위치가 편집 영역 밖이에요 (y=${Math.round(y)})`);
+  }
+
   async safeClick(x, y) {
     const toolbarBottom = await this.frame.evaluate(() => {
       // 화면 위쪽에 고정된 툴바만 (사진 위에 뜨는 작은 툴바는 제외)
@@ -68,30 +77,103 @@ class Writer {
 
   // 블록 아래쪽이 편집 영역 가운데쯤 오도록 스크롤한 뒤 위치를 돌려준다
   async boxInView(locator) {
-    await locator.scrollIntoViewIfNeeded().catch(() => {});
+    // 에디터 본문은 페이지가 아니라 .se-content(__se-scroll-target) 상자 안에서 스크롤된다. 그 상자를 직접 움직인다
+    await locator.evaluate((el) => {
+      const sc = el.closest('.__se-scroll-target') || document.querySelector('.__se-scroll-target');
+      if (!sc) return el.scrollIntoView({ block: 'center' });
+      const r = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+      sc.scrollTop += (r.bottom - sr.top) - sc.clientHeight / 2;
+    }).catch(() => {});
+    await pause(300);
     const viewH = this.page.viewportSize().height;
     let box = await locator.boundingBox();
     // 스크롤은 마우스가 있는 곳에서 일어나므로, 먼저 편집 영역 한가운데로 옮긴다
-    for (let i = 0; box && i < 4; i++) {
+    // 한 번에 크게 휠을 굴리면 무시되므로 800px씩 나눠서 굴린다
+    for (let i = 0; box && i < 30; i++) {
       const bottom = box.y + box.height;
       if (bottom >= 250 && bottom <= viewH - 120) break;
+      const delta = Math.max(-800, Math.min(800, bottom - viewH / 2));
       await this.page.mouse.move(650, viewH / 2);
-      await this.page.mouse.wheel(0, bottom - viewH / 2);
-      await pause(400);
+      await this.page.mouse.wheel(0, delta);
+      await pause(250);
       box = await locator.boundingBox();
     }
     return box;
   }
 
-  // "**굵게**"를 굵게 입력
+  // "**굵게**"는 굵게로 입력. "==강조=="는 일단 그냥 쓰고 구절을 모아뒀다가 다 쓴 뒤 applyAccents()에서 꾸민다
+  // (미리 서식을 켜고 쓰거나 화살표로 위치를 세면 네이버 에디터에서 서식이 풀리거나 어긋난다)
   async typeRich(text) {
-    const parts = text.split(/(\*\*[^*]+\*\*)/).filter(Boolean);
-    for (const part of parts) {
+    this.accents = this.accents || [];
+    for (const m of text.matchAll(/==([^=]+)==/g)) this.accents.push(m[1].replace(/\*\*/g, ''));
+    const typed = text.replace(/==([^=]+)==/g, '$1');
+    for (const part of typed.split(/(\*\*[^*]+\*\*)/).filter(Boolean)) {
       const bold = part.startsWith('**') && part.endsWith('**');
       if (bold) await this.kb.press(`${MOD}+b`);
       await this.kb.insertText(bold ? part.slice(2, -2) : part);
       if (bold) await this.kb.press(`${MOD}+b`);
     }
+  }
+
+  // 강조 구절을 화면에서 찾아 마우스로 드래그 선택 → 굵게 + 코랄색
+  async applyAccents() {
+    const frameEl = await this.frame.frameElement();
+    for (const phrase of this.accents || []) {
+      // 1) 구절이 있는 문단을 화면 안으로 스크롤 (페이지 안 스크롤은 에디터가 막아서 Playwright 스크롤 + 휠을 쓴다)
+      const para = this.frame.locator('.se-component.se-text .se-text-paragraph:visible', { hasText: phrase }).last();
+      const found = (await para.count()) > 0;
+      if (found) {
+        await this.boxInView(para);
+        await pause(500);
+      }
+      // 2) 구절의 시작·끝 화면 위치
+      const r = !found ? null : await para.evaluate((p, phrase) => {
+        const nodes = [];
+        const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        const full = nodes.map((n) => n.textContent).join('');
+        const startIdx = full.indexOf(phrase);
+        const locate = (idx) => {
+          for (const n of nodes) { if (idx <= n.textContent.length) return [n, idx]; idx -= n.textContent.length; }
+          return null;
+        };
+        const range = document.createRange();
+        range.setStart(...locate(startIdx));
+        range.setEnd(...locate(startIdx + phrase.length));
+        const rects = [...range.getClientRects()].filter((x) => x.width > 0);
+        const a = rects[0], z = rects[rects.length - 1];
+        return { x1: a.left + 1, y1: a.top + a.height / 2, x2: z.right - 1, y2: z.top + z.height / 2 };
+      }, phrase);
+      // 바깥 페이지가 스크롤되면 iframe 위치도 바뀌므로 매번 다시 잰다
+      const frameBox = await frameEl.boundingBox();
+      if (!r) { this.log(`강조할 구절을 찾지 못했어요: ${phrase.slice(0, 20)}`); continue; }
+      await pause(300);
+      const x1 = frameBox.x + r.x1, y1 = frameBox.y + r.y1, x2 = frameBox.x + r.x2, y2 = frameBox.y + r.y2;
+      // 클릭 후 드래그하면 더블클릭(단어 선택)이 되므로, 위치만 확인하고 바로 누른 채 끌어간다
+      await this.assertInEditor(y1);
+      await this.assertInEditor(y2);
+      await this.page.mouse.move(x1, y1);
+      await this.page.mouse.down();
+      await this.page.mouse.move(x2, y2, { steps: 8 });
+      await this.page.mouse.up();
+      await pause(200);
+      await (await first(this.frame, S.toolbar.bold)).click();
+      await this.setColor(S.accentColor);
+      await pause(300);
+      const ok = await this.frame.evaluate(({ phrase, rgb }) => {
+        const spans = [...document.querySelectorAll('.se-component.se-text .se-text-paragraph span')]
+          .filter((sp) => (sp.getAttribute('style') || '').includes(rgb));
+        return spans.map((sp) => sp.textContent).join('').includes(phrase);
+      }, { phrase, rgb: '255, 95, 69' });
+      if (!ok) this.log(`강조가 제대로 안 들어갔을 수 있어요: "${phrase.slice(0, 20)}" — 발행 전에 확인해주세요`);
+    }
+    if ((this.accents || []).length) this.log(`강조 ${this.accents.length}곳에 코랄색을 넣었어요.`);
+  }
+
+  async setColor(color) {
+    await (await first(this.frame, S.toolbar.fontColor)).click();
+    await (await first(this.frame, `button.se-color-palette[data-color="${color}"]`)).click();
+    await pause(150);
   }
 
   async enter(n = 1) {
@@ -355,6 +437,7 @@ async function publish({ file, mode, log = () => {}, onDone }) {
       if (b.type === 'heading') log(`소제목: ${b.text}`);
       if (i % 5 === 0) await pause(100);
     }
+    await w.applyAccents();
 
     // 시험용: 입력만 하고 저장·발행 없이 에디터를 비운다
     if (mode === 'dry') {

@@ -107,7 +107,7 @@ const $ = (id) => document.getElementById(id);
 let current = null;
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const rich = (s) => esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+const rich = (s) => esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/==([^=]+)==/g, '<b style="color:#ff5f45">$1</b>');
 
 async function api(path, opts) {
   const res = await fetch(path, opts);

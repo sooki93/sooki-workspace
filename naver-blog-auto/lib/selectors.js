@@ -29,8 +29,15 @@ module.exports = {
     // 가운데 정렬
     // 정렬 버튼은 현재 정렬에 따라 class가 바뀌므로 data-name으로 찾는다
     align: ['button[data-name="align-drop-down-with-justify"]', 'button.se-property-toolbar-drop-down-button[class*="se-align-"]'],
+    // 글자색 (팔레트 버튼은 data-color로 고른다)
+    bold: ['button.se-bold-toolbar-button', 'button[data-name="bold"]'],
+    fontColor: ['button.se-font-color-toolbar-button', 'button[data-name="font-color"]'],
     alignCenter: ['button.se-toolbar-option-align-center-button', 'button[data-value="center"]', 'button[class*="align-center"]'],
   },
+
+  // 강조색: 코랄 / 기본 글자색
+  accentColor: '#ff5f45',
+  textColor: '#000000',
 
   imageComponent: '.se-component.se-image',
   imageCaption: '.se-caption .se-text-paragraph, .se-module-text.se-caption',
