@@ -7,10 +7,8 @@ session/
 # 실행 기록·에디터 화면 캡처
 logs/
 
-# 사진은 용량·초상권 때문에 로컬에만 둔다 (사진 설명 목록만 올림)
-photos/*
-!photos/.gitkeep
-!photos/_사진목록.md
+# 사진은 ~/sookhee-image/헬로뽀숑이미지 에 둔다 (config.json). 혹시 저장소 안에 생겨도 올리지 않는다
+photos/
 posts/images/
 
 # 발행 기록 (로컬 상태)

@@ -9,7 +9,7 @@
 
 ## 보안 — 이 저장소는 공개 저장소
 - `session/`(네이버 로그인 쿠키)은 **절대 커밋하지 않는다.** `.gitignore`에 있다
-- `logs/`(에디터 캡처, 블로그 아이디), `photos/`·`posts/images/`(제품·모델 사진), `posts/_발행기록.json`도 올리지 않는다
+- `logs/`(에디터 캡처, 블로그 아이디), `posts/_발행기록.json`도 올리지 않는다. 사진은 저장소 밖 `~/sookhee-image/`에 둔다
 - 커밋 전 `git diff --cached --name-only`로 위 경로가 없는지 확인한다
 
 ## 구조
@@ -20,11 +20,12 @@
 - `lib/selectors.js` — 네이버 에디터 버튼 위치. **네이버가 화면을 바꾸면 여기만 고친다.** `tools/inspect.js`로 현재 버튼 정보를 뽑을 수 있다
 - `public/index.html` — 대시보드 화면
 - `글쓰기_가이드.md` — 매일 글을 쓸 때의 규칙·톤·피드백
-- `posts/_주제목록.md` — 주제 순서와 상태, `photos/_사진목록.md` — 사진 보관함 설명
+- `posts/_주제목록.md` — 주제 순서와 상태
+- `config.json` — 사진 위치. `imageRoot`(글별 사진 폴더: `~/sookhee-image/헬로뽀숑이미지/블로그`), `photoLibrary`(사진 보관함: `~/sookhee-image/헬로뽀숑이미지`). 글 파일의 `images:`에는 폴더 이름만 쓴다
 
 ## 매일 글쓰기 흐름
 1. `글쓰기_가이드.md` 기준으로 완성 초안 작성 → 사용자 검토
-2. `posts/YYYY-MM-DD_주제.md` 작성, 사진 폴더 `posts/images/<같은 이름>/`를 만들고 **항상 Finder로 열어 사용자에게 보여준다**. `photos/`에 맞는 사진이 있으면 1.jpg…로 복사
+2. `posts/YYYY-MM-DD_주제.md` 작성, 사진 폴더 `~/sookhee-image/헬로뽀숑이미지/블로그/<같은 이름>/`를 만들고 **항상 Finder로 열어 사용자에게 보여준다**. 사진 보관함에 맞는 사진이 있으면 1.jpg…로 복사
 3. 사용자가 대시보드에서 [바로 발행]을 두 번 눌러 발행 (공개 발행은 사용자가 직접 한다)
 
 ## 알려진 함정 (고친 것)

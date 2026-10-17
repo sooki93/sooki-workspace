@@ -4,7 +4,7 @@
 //   ---
 //   title: 제목
 //   tags: 태그1, 태그2
-//   images: images/폴더이름
+//   images: 폴더이름   (config.json imageRoot 아래 폴더)
 //   ---
 //   ## 소제목
 //   일반 문단 (빈 줄로 구분, 한 문단 안의 줄바꿈은 그대로 유지)
@@ -17,7 +17,29 @@
 const fs = require('fs');
 const path = require('path');
 
+const os = require('os');
+
 const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+
+// config.json의 imageRoot: 글별 사진 폴더가 모여 있는 곳 (~/sookhee-image/헬로뽀숑이미지/블로그)
+const expandHome = (p) => (p && p.startsWith('~') ? path.join(os.homedir(), p.slice(1)) : p);
+function loadConfig() {
+  try {
+    const c = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config.json'), 'utf8'));
+    return { imageRoot: expandHome(c.imageRoot), photoLibrary: expandHome(c.photoLibrary) };
+  } catch {
+    return {};
+  }
+}
+
+// 글 파일의 images 값 → 실제 폴더. "~/..."나 절대경로는 그대로, 폴더 이름만 있으면 imageRoot 아래
+function resolveImageDir(filePath, images) {
+  if (!images) return null;
+  if (images.startsWith('~') || path.isAbsolute(images)) return expandHome(images);
+  const { imageRoot } = loadConfig();
+  if (imageRoot) return path.join(imageRoot, images);
+  return path.resolve(path.dirname(filePath), images);
+}
 
 function parseFrontMatter(text) {
   const m = text.match(/^---\n([\s\S]*?)\n---\n?/);
@@ -97,11 +119,11 @@ function parsePostFile(filePath) {
   const text = fs.readFileSync(filePath, 'utf8');
   const { meta, body } = parseFrontMatter(text);
   const blocks = parseBody(body);
-  const imageDir = meta.images ? path.resolve(path.dirname(filePath), meta.images) : null;
+  const imageDir = resolveImageDir(filePath, meta.images);
   for (const b of blocks) {
     if (b.type === 'image') b.file = findImage(imageDir, b.n);
   }
   return { meta, blocks, imageDir };
 }
 
-module.exports = { parsePostFile };
+module.exports = { parsePostFile, loadConfig };

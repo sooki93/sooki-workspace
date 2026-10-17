@@ -5,7 +5,7 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const session = require('./lib/session');
-const { parsePostFile } = require('./lib/parse');
+const { parsePostFile, loadConfig } = require('./lib/parse');
 const { publish } = require('./lib/publisher');
 
 const PORT = Number(process.env.PORT) || 4000;
@@ -97,10 +97,11 @@ const server = http.createServer(async (req, res) => {
     const p = postPath(file);
     if (!p) return send(res, 404, { error: '글 파일을 찾지 못했어요.' });
     const { imageDir } = parsePostFile(p);
-    if (!imageDir || !imageDir.startsWith(POSTS_DIR + path.sep)) return send(res, 400, { error: '글 파일에 images 경로가 없어요.' });
+    const { imageRoot } = loadConfig();
+    if (!imageDir || !imageRoot || !imageDir.startsWith(imageRoot + path.sep)) return send(res, 400, { error: '글 파일의 images 폴더가 사진 폴더(config.json imageRoot) 밖에 있어요.' });
     fs.mkdirSync(imageDir, { recursive: true });
     execFile('open', [imageDir]);
-    return send(res, 200, { dir: path.relative(__dirname, imageDir) });
+    return send(res, 200, { dir: imageDir.replace(require('os').homedir(), '~') });
   }
 
   if (route === 'POST /api/logout') {
@@ -110,7 +111,10 @@ const server = http.createServer(async (req, res) => {
 
   if (route === 'GET /api/posts') {
     // _로 시작하는 파일(주제목록 등)은 글이 아니다. 최신 날짜 글이 위로
-    const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.md') && !f.startsWith('_')).sort().reverse();
+    // 날짜(YYYY-MM-DD)로 시작하는 글은 최신순으로 위에, 날짜 없는 글은 아래에
+    const dated = (f) => /^\d{4}-\d{2}-\d{2}/.test(f);
+    const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.md') && !f.startsWith('_'))
+      .sort((a, b) => (dated(b) - dated(a)) || b.localeCompare(a));
     const records = readRecords();
     return send(res, 200, files.map((f) => {
       const { meta } = parsePostFile(path.join(POSTS_DIR, f));
@@ -123,7 +127,7 @@ const server = http.createServer(async (req, res) => {
     if (!p) return send(res, 404, { error: '글 파일을 찾지 못했어요.' });
     const post = parsePostFile(p);
     post.blocks.forEach((b) => { if (b.type === 'image') b.found = Boolean(b.file); delete b.file; });
-    post.imageDir = post.imageDir ? path.relative(__dirname, post.imageDir) : null;
+    post.imageDir = post.imageDir ? post.imageDir.replace(require('os').homedir(), '~') : null;
     return send(res, 200, post);
   }
 
