@@ -469,6 +469,14 @@ async function publish({ file, mode, log = () => {}, onDone }) {
         await d.accept().catch(() => {});
       });
       await (await first(scope, S.publishConfirm)).click();
+      // 발행 직후 네이버가 띄운 안내(팝업·토스트)를 기록해 실패 원인을 남긴다
+      await pause(3000);
+      for (const f of [page, frame]) {
+        const notes = await f.evaluate(() => [...document.querySelectorAll('[class*="popup"], [class*="toast"], [class*="alert"], [class*="layer"], [role="dialog"]')]
+          .filter((e) => e.offsetWidth && e.innerText && e.innerText.trim().length > 3 && e.innerText.trim().length < 300)
+          .map((e) => e.innerText.replace(/\s+/g, ' ').trim())).catch(() => []);
+        for (const n of [...new Set(notes)].slice(0, 5)) log(`화면 안내: "${n.slice(0, 120)}"`);
+      }
       // 실제로 글 목록에 올라왔는지 확인 (최대 60초)
       const url = await waitForPublished(page, post.meta.title);
       if (!url) throw new Error('발행 버튼은 눌렀지만 블로그에 글이 올라오지 않았어요. 열린 창을 확인해주세요.');
