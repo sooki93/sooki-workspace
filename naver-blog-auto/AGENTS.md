@@ -21,6 +21,7 @@
 - `public/index.html` — 대시보드 화면
 - `글쓰기_가이드.md` — 매일 글을 쓸 때의 규칙·톤·피드백
 - `posts/_주제목록.md` — 주제 순서와 상태
+- `skill/` — Claude 스킬 설치 파일 (`hellopouchon-blog-skill.zip`, 설치 안내 `install.md`). 스킬 원본은 `~/.claude/skills/hellopouchon-blog/`
 - `config.json` — 사진 위치. `imageRoot`(글별 사진 폴더: `~/sookhee-image/헬로뽀숑이미지/블로그`), `photoLibrary`(사진 보관함: `~/sookhee-image/헬로뽀숑이미지`). 글 파일의 `images:`에는 폴더 이름만 쓴다
 
 ## 매일 글쓰기 흐름
