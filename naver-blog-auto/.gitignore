@@ -15,3 +15,6 @@ posts/images/
 posts/_발행기록.json
 
 .DS_Store
+
+# 블로그 글은 올리지 않는다 (발행기 코드만 저장소에 둔다)
+posts/*.md
