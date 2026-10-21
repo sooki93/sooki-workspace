@@ -1,4 +1,4 @@
-// 이미 발행된 글을 고친다: 캡션으로 찾은 사진 삭제, 문장 교체 → 수정 발행
+// 이미 발행된 글을 고친다: 캡션으로 찾은 사진 삭제·교체, 문장 교체 → 수정 발행
 // 실행: node tools/edit-post.js <logNo> '<JSON>'
 //   JSON 예: {"removeImageCaption":"체인 길이는…","replace":[["옛 문장","새 문장"]]}
 // 바꿀 대상을 찾지 못하면 발행하지 않고 멈춘다.
@@ -52,6 +52,59 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       const after = await imgs.count();
       if (after !== before - 1) throw new Error(`사진 삭제가 확인되지 않았어요 (${before} → ${after})`);
       log(`사진 삭제 완료 (${before}장 → ${after}장)`);
+    }
+
+    // 1-1) 사진 교체: 캡션으로 찾은 사진을 지우고, afterText 문장 뒤에 새 사진과 같은 캡션을 넣는다
+    //   {"replaceImage":{"caption":"앞면에 새긴 이름","file":"/절대/경로.jpg","afterText":"앞 문단의 마지막 문장"}}
+    if (spec.replaceImage) {
+      const { caption, file, afterText } = spec.replaceImage;
+      const imgs = frame.locator('.se-component.se-image');
+      const before = await imgs.count();
+      const idx = await imgs.evaluateAll((els, c) => els.findIndex((e) => (e.querySelector('.se-caption')?.innerText || '').includes(c)), caption);
+      if (idx < 0) throw new Error(`바꿀 사진을 찾지 못했어요: ${caption}`);
+      const target = imgs.nth(idx);
+      const box = await w.boxInView(target.locator('img').first());
+      await w.safeClick(box.x + box.width / 2, box.y + box.height - 60);
+      await pause(400);
+      await page.keyboard.press('Backspace');
+      await pause(800);
+      if ((await imgs.count()) !== before - 1) throw new Error('기존 사진 삭제가 확인되지 않았어요.');
+      log('기존 사진 삭제 완료');
+
+      // 앞 문단 끝에 커서를 두고 새 사진 업로드
+      frame = await grab(); w = new Writer(page, frame, log);
+      const para = frame.locator('.se-text-paragraph:visible', { hasText: afterText }).last();
+      if (!(await para.count())) throw new Error(`사진을 넣을 위치 문장을 찾지 못했어요: ${afterText}`);
+      await w.boxInView(para);
+      await para.evaluate((p) => p.scrollIntoView({ block: 'center' }));
+      await pause(600);
+      const frameBox = frame === page.mainFrame() ? { x: 0, y: 0 } : await (await frame.frameElement()).boundingBox();
+      const end = await para.evaluate((p) => { const r = document.createRange(); r.selectNodeContents(p); const rs = [...r.getClientRects()].filter((x) => x.width > 0); const z = rs[rs.length - 1]; return { x: z.right - 2, y: z.top + z.height / 2 }; });
+      await w.assertInEditor(frameBox.y + end.y);
+      await page.mouse.click(frameBox.x + end.x, frameBox.y + end.y);
+      await page.keyboard.press('End');
+      await pause(300);
+      const [chooser] = await Promise.all([
+        page.waitForEvent('filechooser', { timeout: 10000 }),
+        frame.locator([].concat(S.toolbar.image).join(', ')).first().click(),
+      ]);
+      await chooser.setFiles(file);
+      const deadline = Date.now() + 60000;
+      while ((await imgs.count()) < before) {
+        if (Date.now() > deadline) throw new Error('새 사진 업로드가 끝나지 않았어요.');
+        await pause(500);
+      }
+      await pause(1000);
+      const cap = imgs.nth(idx).locator('.se-caption').first();
+      await page.keyboard.press('ArrowUp');
+      if (!(await cap.isVisible().catch(() => false))) { await pause(800); await page.keyboard.press('ArrowUp'); }
+      await cap.waitFor({ state: 'visible', timeout: 5000 });
+      await cap.click();
+      await page.keyboard.insertText(caption);
+      await pause(500);
+      const capNow = await imgs.nth(idx).locator('.se-caption').first().innerText();
+      if (!capNow.includes(caption)) throw new Error('새 사진이 원래 자리에 들어가지 않았어요. 수정 발행하지 않았어요.');
+      log(`사진 교체 완료 (${idx + 1}번째 사진)`);
     }
 
     // 2) 문장 교체: 문장을 드래그로 선택하고 새 문장을 입력
