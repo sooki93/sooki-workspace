@@ -287,8 +287,17 @@ class Writer {
   }
 
   async link(b) {
+    // 주소를 입력하고 Enter를 누르면 링크 카드가 만들어진다.
+    // 카드가 생기기 전에 다음 주소를 입력하면 그 주소는 카드가 안 생기므로, 카드가 늘어날 때까지 기다린다
+    const cards = this.frame.locator('.se-component.se-oglink');
+    const before = await cards.count();
     await this.kb.insertText(b.url);
-    await this.enter(2);
+    await this.enter(1);
+    const deadline = Date.now() + 15000;
+    while ((await cards.count()) <= before && Date.now() < deadline) await pause(500);
+    if ((await cards.count()) <= before) this.log(`링크 카드가 만들어지지 않았어요: ${b.url}`);
+    await pause(500);
+    await this.enter(1);
   }
 
   // 커서가 마지막 일반 문단에 있는지

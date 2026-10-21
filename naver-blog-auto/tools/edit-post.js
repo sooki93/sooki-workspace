@@ -107,6 +107,34 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       log(`사진 교체 완료 (${idx + 1}번째 사진)`);
     }
 
+    // 1-2) 링크 카드 만들기: 주소만 글자로 남은 줄 끝에서 Enter를 눌러 카드를 만든다
+    //   {"linkCard":"https://hellopouchon.com"}
+    if (spec.linkCard) {
+      frame = await grab(); w = new Writer(page, frame, log);
+      const cards = frame.locator('.se-component.se-oglink');
+      const before = await cards.count();
+      const para = frame.locator('.se-text-paragraph:visible').filter({ hasText: new RegExp('^\\s*' + spec.linkCard.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&') + '\\s*$') }).last();
+      if (!(await para.count())) throw new Error(`주소만 있는 줄을 찾지 못했어요: ${spec.linkCard}`);
+      await w.boxInView(para);
+      await para.evaluate((p) => p.scrollIntoView({ block: 'center' }));
+      await pause(600);
+      const frameBox = frame === page.mainFrame() ? { x: 0, y: 0 } : await (await frame.frameElement()).boundingBox();
+      const end = await para.evaluate((p) => { const r = document.createRange(); r.selectNodeContents(p); const rs = [...r.getClientRects()].filter((x) => x.width > 0); const z = rs[rs.length - 1]; return { x: z.right - 2, y: z.top + z.height / 2 }; });
+      await w.assertInEditor(frameBox.y + end.y);
+      await page.mouse.click(frameBox.x + end.x, frameBox.y + end.y);
+      await page.keyboard.press('End');
+      await page.keyboard.press('Shift+Home');
+      await pause(300);
+      // 주소를 다시 입력해야 카드가 만들어진다
+      await page.keyboard.insertText(spec.linkCard);
+      await pause(300);
+      await page.keyboard.press('Enter');
+      const deadline = Date.now() + 15000;
+      while ((await cards.count()) <= before && Date.now() < deadline) await pause(500);
+      if ((await cards.count()) <= before) throw new Error('링크 카드가 만들어지지 않았어요. 수정 발행하지 않았어요.');
+      log(`링크 카드 추가 완료 (${before} → ${await cards.count()})`);
+    }
+
     // 2) 문장 교체: 문장을 드래그로 선택하고 새 문장을 입력
     for (const [oldText, newText] of spec.replace || []) {
       frame = await grab(); w = new Writer(page, frame, log);
