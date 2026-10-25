@@ -135,6 +135,36 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       log(`링크 카드 추가 완료 (${before} → ${await cards.count()})`);
     }
 
+    // 1-3) 링크 추가: 기존 주소 줄 다음 줄에 새 주소를 넣고 카드를 만든다
+    //   {"addLink":{"after":"https://hellopouchon.com","url":"https://hellopouchon.com/product/.../"}}
+    if (spec.addLink) {
+      const { after, url } = spec.addLink;
+      frame = await grab(); w = new Writer(page, frame, log);
+      const cards = frame.locator('.se-component.se-oglink');
+      const before = await cards.count();
+      const esc = (x) => x.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+      const para = frame.locator('.se-text-paragraph:visible').filter({ hasText: new RegExp('^\\s*' + esc(after) + '\\s*$') }).last();
+      if (!(await para.count())) throw new Error(`기준 주소 줄을 찾지 못했어요: ${after}`);
+      await w.boxInView(para);
+      await para.evaluate((p) => p.scrollIntoView({ block: 'center' }));
+      await pause(600);
+      const frameBox = frame === page.mainFrame() ? { x: 0, y: 0 } : await (await frame.frameElement()).boundingBox();
+      const end = await para.evaluate((p) => { const r = document.createRange(); r.selectNodeContents(p); const rs = [...r.getClientRects()].filter((x) => x.width > 0); const z = rs[rs.length - 1]; return { x: z.right - 2, y: z.top + z.height / 2 }; });
+      await w.assertInEditor(frameBox.y + end.y);
+      await page.mouse.click(frameBox.x + end.x, frameBox.y + end.y);
+      await page.keyboard.press('End');
+      await pause(300);
+      await page.keyboard.press('Enter');
+      await pause(300);
+      await page.keyboard.insertText(url);
+      await pause(300);
+      await page.keyboard.press('Enter');
+      const deadline = Date.now() + 15000;
+      while ((await cards.count()) <= before && Date.now() < deadline) await pause(500);
+      if ((await cards.count()) <= before) throw new Error('새 링크 카드가 만들어지지 않았어요. 수정 발행하지 않았어요.');
+      log(`링크 추가 완료: ${url} (카드 ${before} → ${await cards.count()})`);
+    }
+
     // 2) 문장 교체: 문장을 드래그로 선택하고 새 문장을 입력
     for (const [oldText, newText] of spec.replace || []) {
       frame = await grab(); w = new Writer(page, frame, log);
