@@ -79,7 +79,16 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       await para.evaluate((p) => p.scrollIntoView({ block: 'center' }));
       await pause(600);
       const frameBox = frame === page.mainFrame() ? { x: 0, y: 0 } : await (await frame.frameElement()).boundingBox();
-      const end = await para.evaluate((p) => { const r = document.createRange(); r.selectNodeContents(p); const rs = [...r.getClientRects()].filter((x) => x.width > 0); const z = rs[rs.length - 1]; return { x: z.right - 2, y: z.top + z.height / 2 }; });
+      const lineEnd = () => para.evaluate((p) => { const r = document.createRange(); r.selectNodeContents(p); const rs = [...r.getClientRects()].filter((x) => x.width > 0); const z = rs[rs.length - 1]; return { x: z.right - 2, y: z.top + z.height / 2 }; });
+      let end = await lineEnd();
+      // 글 가운데쯤 문장은 한 번에 화면 안으로 안 들어올 때가 있어, 스크롤 상자를 직접 움직여 다시 맞춘다
+      const viewH = page.viewportSize().height;
+      for (let i = 0; i < 5 && (frameBox.y + end.y < 200 || frameBox.y + end.y > viewH - 100); i++) {
+        const dy = frameBox.y + end.y - viewH / 2;
+        await para.evaluate((p, d) => { const sc = p.closest('.__se-scroll-target') || document.querySelector('.__se-scroll-target'); if (sc) sc.scrollTop += d; else window.scrollBy(0, d); }, dy);
+        await pause(500);
+        end = await lineEnd();
+      }
       await w.assertInEditor(frameBox.y + end.y);
       await page.mouse.click(frameBox.x + end.x, frameBox.y + end.y);
       await page.keyboard.press('End');
@@ -95,16 +104,25 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
         await pause(500);
       }
       await pause(1000);
-      const cap = imgs.nth(idx).locator('.se-caption').first();
+      // 다른 자리로 옮길 때도 있으니, afterText 문단 앞에 있는 사진 수로 새 사진 순서를 정한다
+      const newIdx = await para.evaluate((p) => [...document.querySelectorAll('.se-component.se-image')]
+        .filter((e) => e.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING).length);
+      const cap = imgs.nth(newIdx).locator('.se-caption').first();
       await page.keyboard.press('ArrowUp');
       if (!(await cap.isVisible().catch(() => false))) { await pause(800); await page.keyboard.press('ArrowUp'); }
+      // 그래도 캡션 칸이 안 보이면 새 사진을 직접 눌러 선택한다
+      if (!(await cap.isVisible().catch(() => false))) {
+        const nb = await w.boxInView(imgs.nth(newIdx).locator('img').first());
+        await w.safeClick(nb.x + nb.width / 2, nb.y + nb.height - 60);
+        await pause(800);
+      }
       await cap.waitFor({ state: 'visible', timeout: 5000 });
       await cap.click();
       await page.keyboard.insertText(caption);
       await pause(500);
-      const capNow = await imgs.nth(idx).locator('.se-caption').first().innerText();
-      if (!capNow.includes(caption)) throw new Error('새 사진이 원래 자리에 들어가지 않았어요. 수정 발행하지 않았어요.');
-      log(`사진 교체 완료 (${idx + 1}번째 사진)`);
+      const capNow = await imgs.nth(newIdx).locator('.se-caption').first().innerText();
+      if (!capNow.includes(caption)) throw new Error('새 사진이 원하는 자리에 들어가지 않았어요. 수정 발행하지 않았어요.');
+      log(`사진 교체 완료 (${newIdx + 1}번째 사진)`);
     }
 
     // 1-2) 링크 카드 만들기: 주소만 글자로 남은 줄 끝에서 Enter를 눌러 카드를 만든다
