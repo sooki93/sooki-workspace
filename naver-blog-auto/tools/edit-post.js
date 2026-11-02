@@ -214,6 +214,32 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       log(`문장 교체 완료: ${newText}`);
     }
 
+    // 2-1) 글자 이어 쓰기: 내용이 정확히 같은 첫 문단 끝에 붙인다 (예: 💫만 남은 소제목 → [["💫"," 소제목"]])
+    for (const [exact, suffix] of spec.append || []) {
+      frame = await grab(); w = new Writer(page, frame, log);
+      const esc = exact.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+      const para = frame.locator('.se-text-paragraph:visible').filter({ hasText: new RegExp('^\\s*' + esc + '\\s*$') }).first();
+      if (!(await para.count())) throw new Error(`이어 쓸 문단을 찾지 못했어요: ${exact}`);
+      await w.boxInView(para);
+      await pause(400);
+      const frameBox = frame === page.mainFrame() ? { x: 0, y: 0 } : await (await frame.frameElement()).boundingBox();
+      const r = await para.evaluate((p) => {
+        const range = document.createRange(); range.selectNodeContents(p);
+        const rects = [...range.getClientRects()].filter((x) => x.width > 0);
+        const z = rects[rects.length - 1];
+        return { x: z.right - 1, y: z.top + z.height / 2 };
+      });
+      await w.assertInEditor(frameBox.y + r.y);
+      await page.mouse.click(frameBox.x + r.x, frameBox.y + r.y);
+      await pause(300);
+      await page.keyboard.press('End');
+      await page.keyboard.insertText(suffix);
+      await pause(500);
+      const ok = await frame.evaluate((t) => document.body.innerText.includes(t), exact + suffix);
+      if (!ok) throw new Error(`이어 쓰기가 확인되지 않았어요: ${exact}${suffix}`);
+      log(`이어 쓰기 완료: ${exact}${suffix}`);
+    }
+
     // 3) 수정 발행 (사진 삭제가 유지됐는지 다시 확인)
     frame = await grab();
     if (spec.removeImageCaption && (await frame.locator('.se-caption', { hasText: spec.removeImageCaption }).count())) throw new Error('지운 사진이 다시 나타났어요. 수정 발행하지 않았어요.');

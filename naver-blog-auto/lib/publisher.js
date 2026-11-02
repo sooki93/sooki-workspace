@@ -213,7 +213,11 @@ class Writer {
   async heading(b) {
     await this.enter(1);
     await this.setFormat('heading');
-    await this.kb.insertText(b.text);
+    // 소제목 글자를 이모지와 한 번에 넣으면 이모지만 남고 뒷글자가 사라진다 → 이모지와 나머지를 나눠 입력
+    for (const part of b.text.match(/\p{Extended_Pictographic}️?|[^\p{Extended_Pictographic}]+/gu) || []) {
+      await this.kb.insertText(part);
+      await this.page.waitForTimeout(200);
+    }
     await this.enter(1);
     await this.setFormat('body');
     await this.alignCenter();
